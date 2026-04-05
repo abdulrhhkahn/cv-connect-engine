@@ -12,6 +12,7 @@ import CompanyApplicants from "./pages/CompanyApplicants";
 import CandidateJobs from "./pages/CandidateJobs";
 import CandidateProfilePage from "./pages/CandidateProfile";
 import CandidateApplications from "./pages/CandidateApplications";
+import CandidateChat from "./pages/CandidateChat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,10 @@ const AuthenticatedRoutes = () => {
         <Route
           path="/my-applications"
           element={!isCompany ? <CandidateApplications /> : <Navigate to="/dashboard" />}
+        />
+        <Route
+          path="/chat"
+          element={!isCompany ? <CandidateChat /> : <Navigate to="/dashboard" />}
         />
         <Route path="/" element={<Navigate to="/dashboard" />} />
         <Route path="*" element={<NotFound />} />
