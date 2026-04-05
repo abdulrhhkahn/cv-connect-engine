@@ -23,6 +23,9 @@ export interface Job {
   salary?: string;
   createdAt: Date;
   status: "draft" | "active" | "closed";
+  industryExperience?: string[];
+  softSkills?: string[];
+  culturalFit?: string[];
 }
 
 export interface CandidateProfile {
@@ -36,6 +39,9 @@ export interface CandidateProfile {
   education: string;
   cvUrl?: string;
   cvFileName?: string;
+  industryExperience?: string[];
+  softSkills?: string[];
+  culturalFit?: string[];
 }
 
 export interface Application {
