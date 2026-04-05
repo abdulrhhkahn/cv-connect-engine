@@ -16,6 +16,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
       ]
     : [
         { to: "/dashboard", label: "Jobs", icon: Briefcase },
+        { to: "/chat", label: "AI Chat", icon: MessageSquare },
         { to: "/profile", label: "Profile", icon: User },
         { to: "/my-applications", label: "Applications", icon: FileText },
       ];
