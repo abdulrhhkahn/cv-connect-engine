@@ -23,8 +23,14 @@ const CandidateProfilePage = () => {
     skills: [],
     experience: "",
     education: "",
+    industryExperience: [],
+    softSkills: [],
+    culturalFit: [],
   });
   const [newSkill, setNewSkill] = useState("");
+  const [newSoftSkill, setNewSoftSkill] = useState("");
+  const [newIndustry, setNewIndustry] = useState("");
+  const [newCulture, setNewCulture] = useState("");
   const [cvFile, setCvFile] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,6 +43,9 @@ const CandidateProfilePage = () => {
         skills: [...profile.skills],
         experience: profile.experience,
         education: profile.education,
+        industryExperience: [...(profile.industryExperience || [])],
+        softSkills: [...(profile.softSkills || [])],
+        culturalFit: [...(profile.culturalFit || [])],
       });
       setCvFile(profile.cvFileName || null);
     } else if (user) {
@@ -48,6 +57,9 @@ const CandidateProfilePage = () => {
         skills: [],
         experience: "",
         education: "",
+        industryExperience: [],
+        softSkills: [],
+        culturalFit: [],
       });
     }
   }, [profile, user]);
@@ -147,6 +159,87 @@ const CandidateProfilePage = () => {
               className="flex-1"
             />
             <Button variant="outline" size="sm" onClick={addSkill}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Industry Experience */}
+        <div>
+          <Label>Industry Experience</Label>
+          <div className="flex flex-wrap gap-1.5 mt-2 mb-2">
+            {(form.industryExperience || []).map((ind) => (
+              <Badge key={ind} variant="secondary" className="gap-1">
+                {ind}
+                <button onClick={() => setForm({ ...form, industryExperience: (form.industryExperience || []).filter((i) => i !== ind) })} className="hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={newIndustry}
+              onChange={(e) => setNewIndustry(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (newIndustry.trim()) { setForm({ ...form, industryExperience: [...(form.industryExperience || []), newIndustry.trim()] }); setNewIndustry(""); } } }}
+              placeholder="e.g. SaaS, Fintech..."
+              className="flex-1"
+            />
+            <Button variant="outline" size="sm" onClick={() => { if (newIndustry.trim()) { setForm({ ...form, industryExperience: [...(form.industryExperience || []), newIndustry.trim()] }); setNewIndustry(""); } }}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Soft Skills */}
+        <div>
+          <Label>Soft Skills</Label>
+          <div className="flex flex-wrap gap-1.5 mt-2 mb-2">
+            {(form.softSkills || []).map((ss) => (
+              <Badge key={ss} variant="secondary" className="gap-1">
+                {ss}
+                <button onClick={() => setForm({ ...form, softSkills: (form.softSkills || []).filter((s) => s !== ss) })} className="hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={newSoftSkill}
+              onChange={(e) => setNewSoftSkill(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (newSoftSkill.trim()) { setForm({ ...form, softSkills: [...(form.softSkills || []), newSoftSkill.trim()] }); setNewSoftSkill(""); } } }}
+              placeholder="e.g. Leadership, Communication..."
+              className="flex-1"
+            />
+            <Button variant="outline" size="sm" onClick={() => { if (newSoftSkill.trim()) { setForm({ ...form, softSkills: [...(form.softSkills || []), newSoftSkill.trim()] }); setNewSoftSkill(""); } }}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Cultural Fit */}
+        <div>
+          <Label>Cultural Preferences</Label>
+          <div className="flex flex-wrap gap-1.5 mt-2 mb-2">
+            {(form.culturalFit || []).map((cf) => (
+              <Badge key={cf} variant="secondary" className="gap-1">
+                {cf}
+                <button onClick={() => setForm({ ...form, culturalFit: (form.culturalFit || []).filter((c) => c !== cf) })} className="hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={newCulture}
+              onChange={(e) => setNewCulture(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (newCulture.trim()) { setForm({ ...form, culturalFit: [...(form.culturalFit || []), newCulture.trim()] }); setNewCulture(""); } } }}
+              placeholder="e.g. Collaborative, Remote-first..."
+              className="flex-1"
+            />
+            <Button variant="outline" size="sm" onClick={() => { if (newCulture.trim()) { setForm({ ...form, culturalFit: [...(form.culturalFit || []), newCulture.trim()] }); setNewCulture(""); } }}>
               <Plus className="h-4 w-4" />
             </Button>
           </div>

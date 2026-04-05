@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Job, Application } from "@/lib/types";
-import { Briefcase, MapPin, Clock, DollarSign, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { Briefcase, MapPin, Clock, DollarSign, CheckCircle2, AlertTriangle, XCircle, Users, Heart, Building2 } from "lucide-react";
 import { toast } from "sonner";
 
 const CandidateJobs = () => {
@@ -24,7 +24,7 @@ const CandidateJobs = () => {
   const hasApplied = (jobId: string) => applications.some((a) => a.jobId === jobId && a.candidateId === user?.id);
 
   const calculateMatch = (job: Job) => {
-    if (!profile) return { score: 0, details: "Complete your profile to see match score", qualifies: false, missing: [] as string[] };
+    if (!profile) return { score: 0, details: "Complete your profile to see match score", qualifies: false, missing: [] as string[], softSkillGaps: [] as string[], industryGaps: [] as string[], culturalGaps: [] as string[] };
 
     const candidateSkills = profile.skills.map((s) => s.toLowerCase());
     let matched = 0;
@@ -37,7 +37,7 @@ const CandidateJobs = () => {
       else missing.push(req);
     });
 
-    const reqScore = job.requirements.length > 0 ? (matched / job.requirements.length) * 70 : 35;
+    const reqScore = job.requirements.length > 0 ? (matched / job.requirements.length) * 50 : 25;
 
     let skillMatched = 0;
     job.preferredSkills.forEach((skill) => {
@@ -45,15 +45,65 @@ const CandidateJobs = () => {
         skillMatched++;
       }
     });
-    const skillScore = job.preferredSkills.length > 0 ? (skillMatched / job.preferredSkills.length) * 30 : 15;
+    const skillScore = job.preferredSkills.length > 0 ? (skillMatched / job.preferredSkills.length) * 20 : 10;
 
-    const score = Math.round(reqScore + skillScore);
+    // Industry experience matching
+    const candidateIndustry = (profile.industryExperience || []).map(s => s.toLowerCase());
+    const jobIndustry = job.industryExperience || [];
+    let industryMatched = 0;
+    const industryGaps: string[] = [];
+    jobIndustry.forEach(ind => {
+      if (candidateIndustry.some(ci => ind.toLowerCase().includes(ci) || ci.includes(ind.toLowerCase()))) {
+        industryMatched++;
+      } else {
+        industryGaps.push(ind);
+      }
+    });
+    const industryScore = jobIndustry.length > 0 ? (industryMatched / jobIndustry.length) * 10 : 5;
+
+    // Soft skills matching
+    const candidateSoft = (profile.softSkills || []).map(s => s.toLowerCase());
+    const jobSoft = job.softSkills || [];
+    let softMatched = 0;
+    const softSkillGaps: string[] = [];
+    jobSoft.forEach(ss => {
+      if (candidateSoft.some(cs => ss.toLowerCase().includes(cs) || cs.includes(ss.toLowerCase()))) {
+        softMatched++;
+      } else {
+        softSkillGaps.push(ss);
+      }
+    });
+    const softScore = jobSoft.length > 0 ? (softMatched / jobSoft.length) * 10 : 5;
+
+    // Cultural fit matching
+    const candidateCulture = (profile.culturalFit || []).map(s => s.toLowerCase());
+    const jobCulture = job.culturalFit || [];
+    let cultureMatched = 0;
+    const culturalGaps: string[] = [];
+    jobCulture.forEach(cf => {
+      if (candidateCulture.some(cc => cf.toLowerCase().includes(cc) || cc.includes(cf.toLowerCase()))) {
+        cultureMatched++;
+      } else {
+        culturalGaps.push(cf);
+      }
+    });
+    const cultureScore = jobCulture.length > 0 ? (cultureMatched / jobCulture.length) * 10 : 5;
+
+    const score = Math.round(reqScore + skillScore + industryScore + softScore + cultureScore);
     const qualifies = score >= 50;
-    const details = qualifies
-      ? `Strong match! You meet ${matched}/${job.requirements.length} requirements and ${skillMatched}/${job.preferredSkills.length} preferred skills.`
-      : `You meet ${matched}/${job.requirements.length} requirements. Consider strengthening: ${missing.slice(0, 3).join("; ")}`;
 
-    return { score, details, qualifies, missing };
+    const detailParts: string[] = [];
+    detailParts.push(`${matched}/${job.requirements.length} requirements`);
+    detailParts.push(`${skillMatched}/${job.preferredSkills.length} preferred skills`);
+    if (jobIndustry.length) detailParts.push(`${industryMatched}/${jobIndustry.length} industry exp`);
+    if (jobSoft.length) detailParts.push(`${softMatched}/${jobSoft.length} soft skills`);
+    if (jobCulture.length) detailParts.push(`${cultureMatched}/${jobCulture.length} cultural fit`);
+
+    const details = qualifies
+      ? `Strong match! You meet ${detailParts.join(", ")}.`
+      : `You meet ${detailParts.join(", ")}. ${missing.length ? `Strengthen: ${missing.slice(0, 2).join("; ")}` : ""}`;
+
+    return { score, details, qualifies, missing, softSkillGaps, industryGaps, culturalGaps };
   };
 
   const applyForJob = (job: Job) => {
@@ -91,7 +141,7 @@ const CandidateJobs = () => {
           <AlertTriangle className="h-5 w-5 text-accent-foreground shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-accent-foreground">Complete your profile</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Add your skills and experience to see job match scores and apply.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Add your skills, soft skills, and industry experience to see better match scores.</p>
           </div>
         </div>
       )}
@@ -129,7 +179,7 @@ const CandidateJobs = () => {
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground mb-2">{job.companyName}</p>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                       <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{job.location}</span>
                       <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{job.type}</span>
                       <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" />{job.experienceRequired}</span>
@@ -144,68 +194,129 @@ const CandidateJobs = () => {
       )}
 
       <Dialog open={!!selectedJob} onOpenChange={(o) => !o && setSelectedJob(null)}>
-        {selectedJob && (
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-auto">
-            <DialogHeader>
-              <DialogTitle>{selectedJob.title}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">{selectedJob.companyName} · {selectedJob.location} · {selectedJob.type}</p>
-              <p className="text-sm">{selectedJob.description}</p>
+        {selectedJob && (() => {
+          const match = calculateMatch(selectedJob);
+          return (
+            <DialogContent className="max-w-lg max-h-[85vh] overflow-auto">
+              <DialogHeader>
+                <DialogTitle>{selectedJob.title}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">{selectedJob.companyName} · {selectedJob.location} · {selectedJob.type}</p>
+                <p className="text-sm">{selectedJob.description}</p>
 
-              <div>
-                <h4 className="text-sm font-semibold mb-2">Requirements</h4>
-                <ul className="space-y-1">
-                  {selectedJob.requirements.map((r, i) => {
-                    const match = calculateMatch(selectedJob);
-                    const isMissing = match.missing.includes(r);
-                    return (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        {isMissing ? (
-                          <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-                        ) : (
-                          <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" />
-                        )}
-                        <span className={isMissing ? "text-muted-foreground" : ""}>{r}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-semibold mb-2">Preferred Skills</h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedJob.preferredSkills.map((s) => (
-                    <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
-                  ))}
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Requirements</h4>
+                  <ul className="space-y-1">
+                    {selectedJob.requirements.map((r, i) => {
+                      const isMissing = match.missing.includes(r);
+                      return (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          {isMissing ? <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" /> : <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" />}
+                          <span className={isMissing ? "text-muted-foreground" : ""}>{r}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
-              </div>
 
-              {profile && (
-                <div className="bg-secondary/50 rounded-lg p-3">
-                  <p className="text-sm">{calculateMatch(selectedJob).details}</p>
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Preferred Skills</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedJob.preferredSkills.map((s) => (
+                      <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
+                    ))}
+                  </div>
                 </div>
-              )}
 
-              {selectedJob.salary && <p className="text-sm"><strong>Salary:</strong> {selectedJob.salary}</p>}
+                {selectedJob.industryExperience && selectedJob.industryExperience.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                      <Building2 className="h-4 w-4" /> Industry Experience
+                    </h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedJob.industryExperience.map((ind) => {
+                        const isGap = match.industryGaps.includes(ind);
+                        return (
+                          <Badge key={ind} variant="secondary" className={`text-xs ${isGap ? "opacity-50" : "match-badge-high"}`}>
+                            {ind} {!isGap && profile && "✓"}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-              <Button
-                className="w-full"
-                disabled={hasApplied(selectedJob.id) || !profile || !calculateMatch(selectedJob).qualifies}
-                onClick={() => applyForJob(selectedJob)}
-              >
-                {hasApplied(selectedJob.id)
-                  ? "Already Applied"
-                  : !profile
-                  ? "Complete Profile to Apply"
-                  : !calculateMatch(selectedJob).qualifies
-                  ? "Does Not Meet Requirements"
-                  : "Apply Now"}
-              </Button>
-            </div>
-          </DialogContent>
-        )}
+                {selectedJob.softSkills && selectedJob.softSkills.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                      <Users className="h-4 w-4" /> Soft Skills
+                    </h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedJob.softSkills.map((ss) => {
+                        const isGap = match.softSkillGaps.includes(ss);
+                        return (
+                          <Badge key={ss} variant="secondary" className={`text-xs ${isGap ? "opacity-50" : "match-badge-medium"}`}>
+                            {ss} {!isGap && profile && "✓"}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {selectedJob.culturalFit && selectedJob.culturalFit.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                      <Heart className="h-4 w-4" /> Cultural Fit
+                    </h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedJob.culturalFit.map((cf) => {
+                        const isGap = match.culturalGaps.includes(cf);
+                        return (
+                          <Badge key={cf} variant="secondary" className={`text-xs ${isGap ? "opacity-50" : "match-badge-high"}`}>
+                            {cf} {!isGap && profile && "✓"}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {profile && (
+                  <div className="bg-secondary/50 rounded-lg p-3 space-y-1">
+                    <p className="text-sm">{match.details}</p>
+                    {match.softSkillGaps.length > 0 && (
+                      <p className="text-xs text-muted-foreground">💡 Develop: {match.softSkillGaps.join(", ")}</p>
+                    )}
+                    {match.industryGaps.length > 0 && (
+                      <p className="text-xs text-muted-foreground">🏢 Industry gaps: {match.industryGaps.join(", ")}</p>
+                    )}
+                    {match.culturalGaps.length > 0 && (
+                      <p className="text-xs text-muted-foreground">🤝 Cultural alignment: {match.culturalGaps.join(", ")}</p>
+                    )}
+                  </div>
+                )}
+
+                {selectedJob.salary && <p className="text-sm"><strong>Salary:</strong> {selectedJob.salary}</p>}
+
+                <Button
+                  className="w-full"
+                  disabled={hasApplied(selectedJob.id) || !profile || !match.qualifies}
+                  onClick={() => applyForJob(selectedJob)}
+                >
+                  {hasApplied(selectedJob.id)
+                    ? "Already Applied"
+                    : !profile
+                    ? "Complete Profile to Apply"
+                    : !match.qualifies
+                    ? "Does Not Meet Requirements"
+                    : "Apply Now"}
+                </Button>
+              </div>
+            </DialogContent>
+          );
+        })()}
       </Dialog>
     </div>
   );
