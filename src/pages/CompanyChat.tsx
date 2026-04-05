@@ -19,6 +19,9 @@ const generateJobFromPrompt = (prompt: string, companyId: string, companyName: s
   let requirements: string[] = [];
   let preferredSkills: string[] = [];
   let experience = "3+ years";
+  let industryExperience: string[] = [];
+  let softSkills: string[] = [];
+  let culturalFit: string[] = [];
 
   if (isFrontend) {
     title = "Frontend Engineer";
@@ -26,24 +29,36 @@ const generateJobFromPrompt = (prompt: string, companyId: string, companyName: s
     requirements = ["3+ years React/TypeScript experience", "Strong HTML/CSS fundamentals", "Experience with state management", "Understanding of web performance optimization", "Bachelor's in CS or equivalent experience"];
     preferredSkills = ["Next.js", "Tailwind CSS", "Testing (Jest/Cypress)", "Figma", "GraphQL"];
     experience = "3+ years";
+    industryExperience = ["SaaS", "B2C"];
+    softSkills = ["Attention to detail", "Communication", "Collaboration"];
+    culturalFit = ["Design-driven", "User-centric", "Agile"];
   } else if (isBackend) {
     title = "Backend Engineer";
     description = "Join our engineering team to design and build scalable backend services. You'll architect APIs, optimize databases, and ensure our systems handle growing traffic with reliability.";
     requirements = ["3+ years backend development", "Proficiency in Node.js, Python, or Go", "Database design (SQL & NoSQL)", "RESTful API design", "Experience with cloud services (AWS/GCP)"];
     preferredSkills = ["Kubernetes/Docker", "Message queues (Kafka/RabbitMQ)", "CI/CD pipelines", "Microservices architecture", "Performance monitoring"];
     experience = "3+ years";
+    industryExperience = ["Cloud infrastructure", "Fintech"];
+    softSkills = ["Problem-solving", "Autonomy", "Analytical thinking"];
+    culturalFit = ["Engineering excellence", "Data-driven", "Remote-friendly"];
   } else if (isDesign) {
     title = "Product Designer";
     description = "We're looking for a Product Designer to shape the future of our product experience. You'll lead design from concept to launch, creating intuitive interfaces backed by user research.";
     requirements = ["4+ years product design experience", "Strong portfolio of shipped products", "Proficiency in Figma", "User research skills", "Design systems experience"];
     preferredSkills = ["Motion design", "Prototyping", "HTML/CSS", "Data visualization", "Accessibility"];
     experience = "4+ years";
+    industryExperience = ["Consumer tech", "SaaS"];
+    softSkills = ["Creativity", "Empathy", "Storytelling", "Communication"];
+    culturalFit = ["User-centric", "Design-driven", "Inclusive"];
   } else if (isData) {
     title = "Data Scientist";
     description = "Join our data team to uncover insights that drive business decisions. You'll build models, analyze large datasets, and collaborate with stakeholders to translate data into action.";
     requirements = ["3+ years data science experience", "Python/R proficiency", "Statistical modeling", "SQL expertise", "Experience with ML frameworks"];
     preferredSkills = ["TensorFlow/PyTorch", "Spark", "A/B testing", "Data visualization (Tableau/D3)", "NLP"];
     experience = "3+ years";
+    industryExperience = ["Analytics", "AI/ML"];
+    softSkills = ["Analytical thinking", "Communication", "Curiosity"];
+    culturalFit = ["Data-driven", "Research-oriented", "Collaborative"];
   } else {
     title = prompt.length > 50 ? prompt.slice(0, 50) : prompt.replace(/^(create|post|make|build|write|generate)\s+(a\s+)?(job\s+)?(for\s+)?/i, "").trim() || "Software Engineer";
     title = title.charAt(0).toUpperCase() + title.slice(1);
@@ -51,17 +66,24 @@ const generateJobFromPrompt = (prompt: string, companyId: string, companyName: s
     requirements = ["Relevant professional experience", "Strong problem-solving skills", "Excellent communication", "Team collaboration experience"];
     preferredSkills = ["Industry certifications", "Leadership experience", "Agile/Scrum methodology"];
     experience = "2+ years";
+    industryExperience = [];
+    softSkills = ["Communication", "Adaptability", "Teamwork"];
+    culturalFit = ["Collaborative", "Growth-oriented"];
   }
 
   if (lower.includes("senior") || lower.includes("sr")) {
     title = "Senior " + title;
     experience = "5+ years";
+    softSkills = [...new Set([...softSkills, "Leadership", "Mentoring"])];
   } else if (lower.includes("lead")) {
     title = "Lead " + title;
     experience = "7+ years";
+    softSkills = [...new Set([...softSkills, "Leadership", "Strategic thinking", "Mentoring"])];
   } else if (lower.includes("junior") || lower.includes("jr")) {
     title = "Junior " + title;
     experience = "0-2 years";
+    softSkills = softSkills.filter(s => s !== "Leadership" && s !== "Mentoring");
+    softSkills = [...new Set([...softSkills, "Eagerness to learn", "Receptiveness to feedback"])];
   }
 
   return {
@@ -77,6 +99,9 @@ const generateJobFromPrompt = (prompt: string, companyId: string, companyName: s
     type: lower.includes("remote") ? "remote" : lower.includes("contract") ? "contract" : "full-time",
     createdAt: new Date(),
     status: "draft",
+    industryExperience,
+    softSkills,
+    culturalFit,
   };
 };
 
@@ -117,10 +142,16 @@ const CompanyChat = () => {
 
     const job = generateJobFromPrompt(input, user.id, user.company || user.name);
 
+    const advancedSection = [
+      job.industryExperience?.length ? `\n**Industry Experience:**\n${job.industryExperience.map((s) => `• ${s}`).join("\n")}` : "",
+      job.softSkills?.length ? `\n**Soft Skills:**\n${job.softSkills.map((s) => `• ${s}`).join("\n")}` : "",
+      job.culturalFit?.length ? `\n**Cultural Fit:**\n${job.culturalFit.map((s) => `• ${s}`).join("\n")}` : "",
+    ].join("");
+
     const response: ChatMessage = {
       id: crypto.randomUUID(),
       role: "assistant",
-      content: `Great! I've drafted a **${job.title}** position. Here's what I've put together:\n\n**📋 ${job.title}**\n${job.description}\n\n**Requirements:**\n${job.requirements.map((r) => `• ${r}`).join("\n")}\n\n**Preferred Skills:**\n${job.preferredSkills.map((s) => `• ${s}`).join("\n")}\n\n**Experience:** ${job.experienceRequired}\n**Location:** ${job.location} · ${job.type}\n\nThe job has been saved as a **draft**. You can edit it in the Jobs tab or publish it right away. Would you like to create another role?`,
+      content: `Great! I've drafted a **${job.title}** position. Here's what I've put together:\n\n**📋 ${job.title}**\n${job.description}\n\n**Requirements:**\n${job.requirements.map((r) => `• ${r}`).join("\n")}\n\n**Preferred Skills:**\n${job.preferredSkills.map((s) => `• ${s}`).join("\n")}${advancedSection}\n\n**Experience:** ${job.experienceRequired}\n**Location:** ${job.location} · ${job.type}\n\nThe job has been saved as a **draft**. You can edit it in the Jobs tab or publish it right away. Would you like to create another role?`,
       timestamp: new Date(),
       jobData: job,
     };

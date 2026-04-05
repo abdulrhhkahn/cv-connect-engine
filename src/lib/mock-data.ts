@@ -21,6 +21,9 @@ export const mockJobs: Job[] = [
     salary: "$150k - $200k",
     createdAt: new Date("2024-03-15"),
     status: "active",
+    industryExperience: ["SaaS", "B2B"],
+    softSkills: ["Leadership", "Communication", "Mentoring"],
+    culturalFit: ["Collaborative", "Growth-oriented", "Design-driven"],
   },
   {
     id: "j2",
@@ -36,6 +39,9 @@ export const mockJobs: Job[] = [
     salary: "$120k - $170k",
     createdAt: new Date("2024-03-20"),
     status: "active",
+    industryExperience: ["Cloud infrastructure", "Fintech"],
+    softSkills: ["Problem-solving", "Autonomy", "Communication"],
+    culturalFit: ["Remote-first", "Engineering excellence", "Data-driven"],
   },
 ];
 
@@ -49,6 +55,9 @@ export const mockCandidateProfiles: CandidateProfile[] = [
     skills: ["React", "TypeScript", "CSS", "JavaScript", "HTML", "Git", "Tailwind CSS"],
     experience: "4 years",
     education: "B.Sc. Computer Science, UC Berkeley",
+    industryExperience: ["SaaS", "E-commerce"],
+    softSkills: ["Communication", "Teamwork"],
+    culturalFit: ["Collaborative", "Growth-oriented"],
   },
   {
     userId: "u2",
@@ -59,6 +68,9 @@ export const mockCandidateProfiles: CandidateProfile[] = [
     skills: ["React", "TypeScript", "Node.js", "Python", "PostgreSQL", "AWS", "Docker", "GraphQL", "Next.js"],
     experience: "6 years",
     education: "M.Sc. Software Engineering, Stanford",
+    industryExperience: ["SaaS", "B2B", "Cloud infrastructure"],
+    softSkills: ["Leadership", "Mentoring", "Problem-solving", "Communication"],
+    culturalFit: ["Engineering excellence", "Collaborative", "Growth-oriented"],
   },
 ];
 

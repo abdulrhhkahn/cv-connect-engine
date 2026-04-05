@@ -41,6 +41,9 @@ const CompanyJobs = () => {
       experienceRequired: job.experienceRequired,
       location: job.location,
       salary: job.salary,
+      industryExperience: [...(job.industryExperience || [])],
+      softSkills: [...(job.softSkills || [])],
+      culturalFit: [...(job.culturalFit || [])],
     });
   };
 
@@ -192,6 +195,36 @@ const CompanyJobs = () => {
               <Input
                 value={editForm.salary || ""}
                 onChange={(e) => setEditForm({ ...editForm, salary: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Industry Experience (one per line)</Label>
+              <Textarea
+                value={(editForm.industryExperience || []).join("\n")}
+                onChange={(e) => setEditForm({ ...editForm, industryExperience: e.target.value.split("\n").filter(Boolean) })}
+                rows={2}
+                placeholder="e.g. SaaS, Fintech, Healthcare"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Soft Skills (one per line)</Label>
+              <Textarea
+                value={(editForm.softSkills || []).join("\n")}
+                onChange={(e) => setEditForm({ ...editForm, softSkills: e.target.value.split("\n").filter(Boolean) })}
+                rows={2}
+                placeholder="e.g. Leadership, Communication, Mentoring"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Cultural Fit (one per line)</Label>
+              <Textarea
+                value={(editForm.culturalFit || []).join("\n")}
+                onChange={(e) => setEditForm({ ...editForm, culturalFit: e.target.value.split("\n").filter(Boolean) })}
+                rows={2}
+                placeholder="e.g. Collaborative, Growth-oriented, Remote-first"
                 className="mt-1"
               />
             </div>
