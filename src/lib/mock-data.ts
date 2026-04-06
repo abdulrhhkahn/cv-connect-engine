@@ -1,9 +1,27 @@
-import { Job, CandidateProfile, Application, User } from "./types";
+import { Job, CandidateProfile, Application, User, CompanyProfile } from "./types";
 
 export const mockUsers: User[] = [
   { id: "c1", email: "hr@techcorp.com", name: "Sarah Chen", role: "company", company: "TechCorp" },
   { id: "u1", email: "alex@email.com", name: "Alex Rivera", role: "candidate" },
   { id: "u2", email: "jordan@email.com", name: "Jordan Kim", role: "candidate" },
+];
+
+export const mockCompanyProfiles: CompanyProfile[] = [
+  {
+    userId: "c1",
+    companyName: "TechCorp",
+    about: "TechCorp is a leading technology company building next-generation SaaS products for businesses worldwide. We believe in innovation, collaboration, and empowering our teams to do their best work.",
+    industry: "Technology / SaaS",
+    location: "San Francisco, CA",
+    size: "200-500",
+    website: "https://techcorp.example.com",
+    contactEmail: "careers@techcorp.com",
+    contactPhone: "+1 (555) 123-4567",
+    employees: [
+      { name: "Jordan Kim", title: "Full Stack Developer" },
+    ],
+    followers: ["u1"],
+  },
 ];
 
 export const mockJobs: Job[] = [
@@ -55,6 +73,10 @@ export const mockCandidateProfiles: CandidateProfile[] = [
     skills: ["React", "TypeScript", "CSS", "JavaScript", "HTML", "Git", "Tailwind CSS"],
     experience: "4 years",
     education: "B.Sc. Computer Science, UC Berkeley",
+    phone: "+1 (555) 987-6543",
+    linkedIn: "linkedin.com/in/alexrivera",
+    portfolio: "alexrivera.dev",
+    location: "San Francisco, CA",
     industryExperience: ["SaaS", "E-commerce"],
     softSkills: ["Communication", "Teamwork"],
     culturalFit: ["Collaborative", "Growth-oriented"],
@@ -68,6 +90,9 @@ export const mockCandidateProfiles: CandidateProfile[] = [
     skills: ["React", "TypeScript", "Node.js", "Python", "PostgreSQL", "AWS", "Docker", "GraphQL", "Next.js"],
     experience: "6 years",
     education: "M.Sc. Software Engineering, Stanford",
+    phone: "+1 (555) 456-7890",
+    linkedIn: "linkedin.com/in/jordankim",
+    location: "New York, NY",
     industryExperience: ["SaaS", "B2B", "Cloud infrastructure"],
     softSkills: ["Leadership", "Mentoring", "Problem-solving", "Communication"],
     culturalFit: ["Engineering excellence", "Collaborative", "Growth-oriented"],
@@ -84,6 +109,9 @@ export const mockApplications: Application[] = [
     matchScore: 65,
     matchDetails: "Meets 3/4 core requirements. Missing: 5+ years experience (has 4). Has React/TypeScript but limited design systems experience.",
     appliedAt: new Date("2024-03-18"),
+    decisionReason: "Application is under review. Your profile shows strong potential but falls slightly short on experience requirements.",
+    improvements: ["Gain 1 more year of professional experience", "Build design system portfolio projects", "Get certified in testing frameworks"],
+    missingSkills: ["Design systems expertise", "Testing frameworks", "5+ years experience"],
   },
   {
     id: "a2",
@@ -94,5 +122,8 @@ export const mockApplications: Application[] = [
     matchScore: 92,
     matchDetails: "Exceeds experience requirement. Strong match across all core requirements and preferred skills including Next.js and GraphQL.",
     appliedAt: new Date("2024-03-19"),
+    decisionReason: "Excellent fit! Your extensive experience and skill set align perfectly with this role. You've been shortlisted for an interview.",
+    improvements: [],
+    missingSkills: [],
   },
 ];

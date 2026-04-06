@@ -1,11 +1,11 @@
 import { useState, useCallback } from "react";
-import { Job, Application, CandidateProfile } from "./types";
-import { mockJobs, mockApplications, mockCandidateProfiles } from "./mock-data";
+import { Job, Application, CandidateProfile, CompanyProfile } from "./types";
+import { mockJobs, mockApplications, mockCandidateProfiles, mockCompanyProfiles } from "./mock-data";
 
-// Simple global state (replace with proper state management later)
 let globalJobs = [...mockJobs];
 let globalApplications = [...mockApplications];
 let globalProfiles = [...mockCandidateProfiles];
+let globalCompanyProfiles = [...mockCompanyProfiles];
 let listeners: (() => void)[] = [];
 
 const notify = () => listeners.forEach((l) => l());
@@ -14,7 +14,6 @@ export const useJobStore = () => {
   const [, setTick] = useState(0);
   const rerender = useCallback(() => setTick((t) => t + 1), []);
 
-  // Subscribe to changes
   useState(() => {
     listeners.push(rerender);
     return () => {
@@ -26,6 +25,7 @@ export const useJobStore = () => {
     jobs: globalJobs,
     applications: globalApplications,
     profiles: globalProfiles,
+    companyProfiles: globalCompanyProfiles,
 
     addJob: (job: Job) => {
       globalJobs = [job, ...globalJobs];
@@ -63,5 +63,29 @@ export const useJobStore = () => {
     },
 
     getProfile: (userId: string) => globalProfiles.find((p) => p.userId === userId),
+
+    getCompanyProfile: (userId: string) => globalCompanyProfiles.find((p) => p.userId === userId),
+
+    updateCompanyProfile: (userId: string, updates: Partial<CompanyProfile>) => {
+      const idx = globalCompanyProfiles.findIndex((p) => p.userId === userId);
+      if (idx >= 0) {
+        globalCompanyProfiles = globalCompanyProfiles.map((p) => (p.userId === userId ? { ...p, ...updates } : p));
+      } else {
+        globalCompanyProfiles = [...globalCompanyProfiles, { userId, ...updates } as CompanyProfile];
+      }
+      notify();
+    },
+
+    toggleFollow: (companyUserId: string, candidateUserId: string) => {
+      globalCompanyProfiles = globalCompanyProfiles.map((p) => {
+        if (p.userId === companyUserId) {
+          const followers = p.followers || [];
+          const isFollowing = followers.includes(candidateUserId);
+          return { ...p, followers: isFollowing ? followers.filter((f) => f !== candidateUserId) : [...followers, candidateUserId] };
+        }
+        return p;
+      });
+      notify();
+    },
   };
 };
