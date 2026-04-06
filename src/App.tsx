@@ -9,6 +9,8 @@ import AppLayout from "./components/AppLayout";
 import CompanyChat from "./pages/CompanyChat";
 import CompanyJobs from "./pages/CompanyJobs";
 import CompanyApplicants from "./pages/CompanyApplicants";
+import CompanyProfilePage from "./pages/CompanyProfilePage";
+import CompanyPublicProfile from "./pages/CompanyPublicProfile";
 import CandidateJobs from "./pages/CandidateJobs";
 import CandidateProfilePage from "./pages/CandidateProfile";
 import CandidateApplications from "./pages/CandidateApplications";
@@ -26,30 +28,14 @@ const AuthenticatedRoutes = () => {
   return (
     <AppLayout>
       <Routes>
-        <Route
-          path="/dashboard"
-          element={isCompany ? <CompanyChat /> : <CandidateJobs />}
-        />
-        <Route
-          path="/jobs"
-          element={isCompany ? <CompanyJobs /> : <Navigate to="/dashboard" />}
-        />
-        <Route
-          path="/applicants"
-          element={isCompany ? <CompanyApplicants /> : <Navigate to="/dashboard" />}
-        />
-        <Route
-          path="/profile"
-          element={!isCompany ? <CandidateProfilePage /> : <Navigate to="/dashboard" />}
-        />
-        <Route
-          path="/my-applications"
-          element={!isCompany ? <CandidateApplications /> : <Navigate to="/dashboard" />}
-        />
-        <Route
-          path="/chat"
-          element={!isCompany ? <CandidateChat /> : <Navigate to="/dashboard" />}
-        />
+        <Route path="/dashboard" element={isCompany ? <CompanyChat /> : <CandidateJobs />} />
+        <Route path="/jobs" element={isCompany ? <CompanyJobs /> : <Navigate to="/dashboard" />} />
+        <Route path="/applicants" element={isCompany ? <CompanyApplicants /> : <Navigate to="/dashboard" />} />
+        <Route path="/company-profile" element={isCompany ? <CompanyProfilePage /> : <Navigate to="/dashboard" />} />
+        <Route path="/company/:companyId" element={<CompanyPublicProfile />} />
+        <Route path="/profile" element={!isCompany ? <CandidateProfilePage /> : <Navigate to="/dashboard" />} />
+        <Route path="/my-applications" element={!isCompany ? <CandidateApplications /> : <Navigate to="/dashboard" />} />
+        <Route path="/chat" element={!isCompany ? <CandidateChat /> : <Navigate to="/dashboard" />} />
         <Route path="/" element={<Navigate to="/dashboard" />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
