@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { Sparkles, LogOut, Briefcase, User, MessageSquare, FileText } from "lucide-react";
+import { Sparkles, LogOut, Briefcase, User, MessageSquare, FileText, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "react-router-dom";
 
@@ -13,6 +13,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
         { to: "/dashboard", label: "Chat", icon: MessageSquare },
         { to: "/jobs", label: "Jobs", icon: Briefcase },
         { to: "/applicants", label: "Applicants", icon: User },
+        { to: "/company-profile", label: "Company", icon: Building2 },
       ]
     : [
         { to: "/dashboard", label: "Jobs", icon: Briefcase },

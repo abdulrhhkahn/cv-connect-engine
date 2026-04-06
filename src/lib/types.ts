@@ -9,6 +9,22 @@ export interface User {
   avatar?: string;
 }
 
+export interface CompanyProfile {
+  userId: string;
+  companyName: string;
+  about: string;
+  industry: string;
+  location: string;
+  size: string;
+  website: string;
+  contactEmail: string;
+  contactPhone: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  employees: { name: string; title: string; avatarUrl?: string }[];
+  followers: string[]; // candidate user IDs
+}
+
 export interface Job {
   id: string;
   companyId: string;
@@ -39,6 +55,11 @@ export interface CandidateProfile {
   education: string;
   cvUrl?: string;
   cvFileName?: string;
+  avatarUrl?: string;
+  phone?: string;
+  linkedIn?: string;
+  portfolio?: string;
+  location?: string;
   industryExperience?: string[];
   softSkills?: string[];
   culturalFit?: string[];
@@ -53,6 +74,9 @@ export interface Application {
   matchScore: number;
   matchDetails: string;
   appliedAt: Date;
+  decisionReason?: string;
+  improvements?: string[];
+  missingSkills?: string[];
 }
 
 export interface ChatMessage {

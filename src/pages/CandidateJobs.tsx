@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useJobStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -10,13 +12,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Job, Application } from "@/lib/types";
-import { Briefcase, MapPin, Clock, DollarSign, CheckCircle2, AlertTriangle, XCircle, Users, Heart, Building2 } from "lucide-react";
+import { Briefcase, MapPin, Clock, DollarSign, CheckCircle2, AlertTriangle, XCircle, Users, Heart, Building2, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
 
 const CandidateJobs = () => {
   const { user } = useAuth();
   const { jobs, applications, addApplication, getProfile } = useJobStore();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [locationFilter, setLocationFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [matchFilter, setMatchFilter] = useState("all");
+  const [industryFilter, setIndustryFilter] = useState("all");
 
   const activeJobs = jobs.filter((j) => j.status === "active");
   const profile = user ? getProfile(user.id) : null;
@@ -47,7 +54,6 @@ const CandidateJobs = () => {
     });
     const skillScore = job.preferredSkills.length > 0 ? (skillMatched / job.preferredSkills.length) * 20 : 10;
 
-    // Industry experience matching
     const candidateIndustry = (profile.industryExperience || []).map(s => s.toLowerCase());
     const jobIndustry = job.industryExperience || [];
     let industryMatched = 0;
@@ -61,7 +67,6 @@ const CandidateJobs = () => {
     });
     const industryScore = jobIndustry.length > 0 ? (industryMatched / jobIndustry.length) * 10 : 5;
 
-    // Soft skills matching
     const candidateSoft = (profile.softSkills || []).map(s => s.toLowerCase());
     const jobSoft = job.softSkills || [];
     let softMatched = 0;
@@ -75,7 +80,6 @@ const CandidateJobs = () => {
     });
     const softScore = jobSoft.length > 0 ? (softMatched / jobSoft.length) * 10 : 5;
 
-    // Cultural fit matching
     const candidateCulture = (profile.culturalFit || []).map(s => s.toLowerCase());
     const jobCulture = job.culturalFit || [];
     let cultureMatched = 0;
@@ -106,6 +110,33 @@ const CandidateJobs = () => {
     return { score, details, qualifies, missing, softSkillGaps, industryGaps, culturalGaps };
   };
 
+  // Extract unique values for filters
+  const locations = useMemo(() => [...new Set(activeJobs.map(j => j.location))], [activeJobs]);
+  const industries = useMemo(() => {
+    const all = activeJobs.flatMap(j => j.industryExperience || []);
+    return [...new Set(all)];
+  }, [activeJobs]);
+
+  // Filter jobs
+  const filteredJobs = useMemo(() => {
+    return activeJobs.filter(job => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!job.title.toLowerCase().includes(q) && !job.companyName.toLowerCase().includes(q) && !job.description.toLowerCase().includes(q)) return false;
+      }
+      if (locationFilter !== "all" && job.location !== locationFilter) return false;
+      if (typeFilter !== "all" && job.type !== typeFilter) return false;
+      if (industryFilter !== "all" && !(job.industryExperience || []).includes(industryFilter)) return false;
+      if (matchFilter !== "all" && profile) {
+        const score = calculateMatch(job).score;
+        if (matchFilter === "high" && score < 80) return false;
+        if (matchFilter === "medium" && (score < 50 || score >= 80)) return false;
+        if (matchFilter === "low" && score >= 50) return false;
+      }
+      return true;
+    });
+  }, [activeJobs, searchQuery, locationFilter, typeFilter, matchFilter, industryFilter, profile]);
+
   const applyForJob = (job: Job) => {
     if (!user || !profile) {
       toast.error("Please complete your profile first");
@@ -125,6 +156,9 @@ const CandidateJobs = () => {
       matchScore: match.score,
       matchDetails: match.details,
       appliedAt: new Date(),
+      decisionReason: "Your application is being reviewed by the hiring team.",
+      improvements: match.missing.length > 0 ? match.missing.map(m => `Strengthen: ${m}`) : [],
+      missingSkills: [...match.softSkillGaps, ...match.industryGaps],
     };
     addApplication(app);
     toast.success("Application submitted!");
@@ -134,7 +168,68 @@ const CandidateJobs = () => {
   return (
     <div className="p-4 lg:p-8 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold tracking-tight mb-1">Open Positions</h1>
-      <p className="text-sm text-muted-foreground mb-6">Browse and apply to jobs that match your skills</p>
+      <p className="text-sm text-muted-foreground mb-4">Browse and apply to jobs that match your skills</p>
+
+      {/* Search & Filters */}
+      <div className="glass-card rounded-xl p-4 mb-6 space-y-3 animate-fade-in">
+        <div className="flex items-center gap-2">
+          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Input
+            placeholder="Search jobs by title, company, or keyword..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1"
+          />
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Select value={locationFilter} onValueChange={setLocationFilter}>
+            <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectValue placeholder="Location" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Locations</SelectItem>
+              {locations.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[140px] h-8 text-xs">
+              <SelectValue placeholder="Job Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="full-time">Full-time</SelectItem>
+              <SelectItem value="part-time">Part-time</SelectItem>
+              <SelectItem value="contract">Contract</SelectItem>
+              <SelectItem value="remote">Remote</SelectItem>
+            </SelectContent>
+          </Select>
+          {profile && (
+            <Select value={matchFilter} onValueChange={setMatchFilter}>
+              <SelectTrigger className="w-[140px] h-8 text-xs">
+                <SelectValue placeholder="Match Score" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Matches</SelectItem>
+                <SelectItem value="high">80%+ Match</SelectItem>
+                <SelectItem value="medium">50-79% Match</SelectItem>
+                <SelectItem value="low">Below 50%</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          {industries.length > 0 && (
+            <Select value={industryFilter} onValueChange={setIndustryFilter}>
+              <SelectTrigger className="w-[150px] h-8 text-xs">
+                <SelectValue placeholder="Industry" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Industries</SelectItem>
+                {industries.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      </div>
 
       {!profile && (
         <div className="bg-accent rounded-xl p-4 mb-6 flex items-start gap-3 animate-fade-in">
@@ -146,13 +241,16 @@ const CandidateJobs = () => {
         </div>
       )}
 
-      {activeJobs.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">No jobs available right now.</div>
+      {filteredJobs.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          {activeJobs.length === 0 ? "No jobs available right now." : "No jobs match your filters."}
+        </div>
       ) : (
         <div className="space-y-3">
-          {activeJobs.map((job) => {
+          {filteredJobs.map((job) => {
             const match = calculateMatch(job);
             const applied = hasApplied(job.id);
+            const showMatch = profile && match.score >= 60;
 
             return (
               <div
@@ -164,11 +262,11 @@ const CandidateJobs = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold">{job.title}</h3>
-                      {profile && (
+                      {showMatch && (
                         <Badge
                           variant="secondary"
                           className={
-                            match.score >= 80 ? "match-badge-high" : match.score >= 50 ? "match-badge-medium" : "match-badge-low"
+                            match.score >= 80 ? "match-badge-high" : "match-badge-medium"
                           }
                         >
                           {match.score}% match
