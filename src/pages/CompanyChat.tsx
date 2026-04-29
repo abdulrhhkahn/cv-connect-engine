@@ -3,9 +3,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ChatMessage, Job } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Briefcase, Plus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Send, Sparkles, Briefcase, Save, CheckCircle2, Lightbulb, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useJobStore } from "@/lib/store";
+import TagInput from "@/components/TagInput";
+import { toast } from "sonner";
 
 const roleTemplates: Record<string, { keywords: string[]; title: string; description: string; requirements: string[]; preferredSkills: string[]; experience: string; industryExperience: string[]; softSkills: string[]; culturalFit: string[] }> = {
   frontend: {
