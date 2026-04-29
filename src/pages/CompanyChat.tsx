@@ -296,44 +296,159 @@ const CompanyChat = () => {
       <div className="flex-1 overflow-auto p-4 lg:p-8">
         <div className="max-w-2xl mx-auto space-y-4">
           {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex animate-fade-in ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line ${
-                  msg.role === "user"
-                    ? "chat-bubble-user text-foreground"
-                    : "chat-bubble-ai"
-                }`}
-              >
-                {msg.role === "assistant" && (
-                  <div className="flex items-center gap-1.5 mb-2 text-primary">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">HireAI</span>
-                  </div>
-                )}
-                {msg.content.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
-                  part.startsWith("**") && part.endsWith("**") ? (
-                    <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>
-                  ) : (
-                    <span key={i}>{part}</span>
-                  )
-                )}
-                {msg.jobData && (
-                  <div className="mt-3 flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-xs"
-                      onClick={() => navigate("/jobs")}
-                    >
-                      <Briefcase className="h-3 w-3 mr-1" />
-                      View in Jobs
-                    </Button>
-                  </div>
-                )}
+            <div key={msg.id} className="space-y-3 animate-fade-in">
+              <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line ${
+                    msg.role === "user" ? "chat-bubble-user text-foreground" : "chat-bubble-ai"
+                  }`}
+                >
+                  {msg.role === "assistant" && (
+                    <div className="flex items-center gap-1.5 mb-2 text-primary">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span className="text-xs font-medium">HireAI</span>
+                    </div>
+                  )}
+                  {msg.content.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
+                    part.startsWith("**") && part.endsWith("**") ? (
+                      <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>
+                    ) : (
+                      <span key={i}>{part}</span>
+                    )
+                  )}
+                </div>
               </div>
+
+              {msg.draftJob && (
+                <div className="glass-card rounded-xl p-4 space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Draft Job — Editable
+                      </span>
+                    </div>
+                    {msg.saved && (
+                      <Badge variant="secondary" className="match-badge-high text-xs">
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> Saved
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Title</label>
+                      <Input
+                        value={msg.draftJob.title}
+                        onChange={(e) => updateDraft(msg.id, { title: e.target.value })}
+                        disabled={msg.saved}
+                        className="mt-1 h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Experience</label>
+                      <Input
+                        value={msg.draftJob.experienceRequired}
+                        onChange={(e) => updateDraft(msg.id, { experienceRequired: e.target.value })}
+                        disabled={msg.saved}
+                        className="mt-1 h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Location</label>
+                      <Input
+                        value={msg.draftJob.location}
+                        onChange={(e) => updateDraft(msg.id, { location: e.target.value })}
+                        disabled={msg.saved}
+                        className="mt-1 h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Salary (optional)</label>
+                      <Input
+                        value={msg.draftJob.salary || ""}
+                        onChange={(e) => updateDraft(msg.id, { salary: e.target.value })}
+                        disabled={msg.saved}
+                        placeholder="$120k - $150k"
+                        className="mt-1 h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Description</label>
+                    <Textarea
+                      value={msg.draftJob.description}
+                      onChange={(e) => updateDraft(msg.id, { description: e.target.value })}
+                      disabled={msg.saved}
+                      rows={3}
+                      className="mt-1 text-sm"
+                    />
+                  </div>
+
+                  <TagInput
+                    label="Requirements"
+                    tags={msg.draftJob.requirements}
+                    onAdd={(t) => updateDraft(msg.id, { requirements: [...msg.draftJob!.requirements, t] })}
+                    onRemove={(t) => updateDraft(msg.id, { requirements: msg.draftJob!.requirements.filter((x) => x !== t) })}
+                    placeholder="Add a requirement..."
+                  />
+                  <TagInput
+                    label="Preferred Skills"
+                    tags={msg.draftJob.preferredSkills}
+                    onAdd={(t) => updateDraft(msg.id, { preferredSkills: [...msg.draftJob!.preferredSkills, t] })}
+                    onRemove={(t) => updateDraft(msg.id, { preferredSkills: msg.draftJob!.preferredSkills.filter((x) => x !== t) })}
+                    placeholder="Add a preferred skill..."
+                  />
+                  <TagInput
+                    label="Industry Experience"
+                    tags={msg.draftJob.industryExperience || []}
+                    onAdd={(t) => updateDraft(msg.id, { industryExperience: [...(msg.draftJob!.industryExperience || []), t] })}
+                    onRemove={(t) => updateDraft(msg.id, { industryExperience: (msg.draftJob!.industryExperience || []).filter((x) => x !== t) })}
+                    placeholder="e.g. SaaS, Fintech..."
+                  />
+                  <TagInput
+                    label="Soft Skills"
+                    tags={msg.draftJob.softSkills || []}
+                    onAdd={(t) => updateDraft(msg.id, { softSkills: [...(msg.draftJob!.softSkills || []), t] })}
+                    onRemove={(t) => updateDraft(msg.id, { softSkills: (msg.draftJob!.softSkills || []).filter((x) => x !== t) })}
+                    placeholder="e.g. Leadership, Communication..."
+                  />
+                  <TagInput
+                    label="Cultural Fit"
+                    tags={msg.draftJob.culturalFit || []}
+                    onAdd={(t) => updateDraft(msg.id, { culturalFit: [...(msg.draftJob!.culturalFit || []), t] })}
+                    onRemove={(t) => updateDraft(msg.id, { culturalFit: (msg.draftJob!.culturalFit || []).filter((x) => x !== t) })}
+                    placeholder="e.g. Collaborative, Remote-first..."
+                  />
+
+                  <div className="flex gap-2 pt-1">
+                    <Button size="sm" onClick={() => saveDraft(msg.id)} disabled={msg.saved}>
+                      <Save className="h-3.5 w-3.5 mr-1" />
+                      {msg.saved ? "Saved" : "Save Draft"}
+                    </Button>
+                    {msg.saved && (
+                      <Button size="sm" variant="outline" onClick={() => navigate("/jobs")}>
+                        <Briefcase className="h-3.5 w-3.5 mr-1" /> View in Jobs
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {msg.suggestions && msg.suggestions.length > 0 && !msg.saved && (
+                <div className="rounded-xl border border-primary/20 bg-accent/40 p-4">
+                  <div className="flex items-center gap-1.5 mb-2 text-primary">
+                    <Lightbulb className="h-3.5 w-3.5" />
+                    <span className="text-xs font-semibold uppercase tracking-wide">AI Suggestions</span>
+                  </div>
+                  <ul className="space-y-1.5">
+                    {msg.suggestions.map((s, i) => (
+                      <li key={i} className="text-xs leading-relaxed text-foreground/90">{s}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           ))}
           {isTyping && (
