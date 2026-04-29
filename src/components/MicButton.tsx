@@ -2,28 +2,17 @@ import { Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { toast } from "sonner";
-import { useRef } from "react";
 
 interface MicButtonProps {
-  onTranscript: (text: string) => void;
+  /** Called once per finalized utterance with just that segment of text. Append it to your field. */
+  onTranscript: (finalSegment: string) => void;
   disabled?: boolean;
 }
 
-/**
- * Mic button that uses the browser Web Speech API to dictate into a text field.
- * Calls onTranscript with the latest combined text (replaces interim, appends final).
- */
 const MicButton = ({ onTranscript, disabled }: MicButtonProps) => {
-  const baseRef = useRef<string>("");
-
-  const { isListening, supported, toggle, start } = useSpeechToText({
+  const { isListening, supported, start, stop } = useSpeechToText({
     onResult: (text, isFinal) => {
-      const sep = baseRef.current && !baseRef.current.endsWith(" ") ? " " : "";
-      const combined = baseRef.current + sep + text;
-      onTranscript(combined.trim());
-      if (isFinal) {
-        baseRef.current = combined.trim();
-      }
+      if (isFinal && text.trim()) onTranscript(text.trim());
     },
   });
 
@@ -32,14 +21,8 @@ const MicButton = ({ onTranscript, disabled }: MicButtonProps) => {
       toast.error("Speech recognition isn't supported in this browser. Try Chrome or Edge.");
       return;
     }
-    if (!isListening) {
-      // Snapshot whatever is currently in the field as the base
-      // (parent should pass current value via onTranscript baseline if needed)
-      baseRef.current = "";
-      start();
-    } else {
-      toggle();
-    }
+    if (isListening) stop();
+    else start();
   };
 
   return (
