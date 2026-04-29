@@ -3,9 +3,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ChatMessage, Job } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, Briefcase, Plus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Send, Sparkles, Briefcase, Save, CheckCircle2, Lightbulb } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useJobStore } from "@/lib/store";
+import TagInput from "@/components/TagInput";
+import { toast } from "sonner";
 
 const roleTemplates: Record<string, { keywords: string[]; title: string; description: string; requirements: string[]; preferredSkills: string[]; experience: string; industryExperience: string[]; softSkills: string[]; culturalFit: string[] }> = {
   frontend: {
@@ -194,15 +198,39 @@ const generateJobFromPrompt = (prompt: string, companyId: string, companyName: s
   };
 };
 
+// Generate interactive AI suggestions for a draft job
+const generateSuggestions = (job: Job): string[] => {
+  const tips: string[] = [];
+  if (!job.salary) tips.push("💰 Consider adding a salary range — postings with salary info get 30% more applications.");
+  if (!job.industryExperience || job.industryExperience.length === 0) tips.push("🏢 Specify industry experience to attract candidates with the right background.");
+  if (!job.softSkills || job.softSkills.length < 3) tips.push("🤝 Add a few soft skills (e.g. communication, ownership) — they help screen for cultural fit.");
+  if (!job.culturalFit || job.culturalFit.length === 0) tips.push("🌱 Describe your team culture — values like 'remote-first' or 'collaborative' attract aligned candidates.");
+  if (job.requirements.length > 7) tips.push("✂️ You have many hard requirements. Consider moving some to 'preferred skills' to widen your candidate pool.");
+  if (job.location === "On-site") tips.push("🌍 Offering remote or hybrid work can dramatically expand your talent pool.");
+  if (!job.description.toLowerCase().includes("benefit") && !job.description.toLowerCase().includes("perk")) {
+    tips.push("🎁 Mention key benefits or perks in the description (health, equity, learning budget, PTO).");
+  }
+  if (!/diversit|inclus|equal opportunity/i.test(job.description)) {
+    tips.push("✨ Add a diversity & inclusion statement to encourage applications from underrepresented groups.");
+  }
+  return tips.slice(0, 4);
+};
+
+interface DraftMessage extends ChatMessage {
+  draftJob?: Job;
+  saved?: boolean;
+  suggestions?: string[];
+}
+
 const CompanyChat = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { addJob } = useJobStore();
-  const [messages, setMessages] = useState<ChatMessage[]>([
+  const [messages, setMessages] = useState<DraftMessage[]>([
     {
       id: "welcome",
       role: "assistant",
-      content: `Hi ${user?.name}! 👋 I'm your AI hiring assistant. Tell me about the role you want to fill and I'll create a professional job posting for you.\n\nTry something like:\n• "Post a senior frontend engineer role"\n• "I need a remote backend developer"\n• "Create a job for a UX designer"`,
+      content: `Hi ${user?.name}! 👋 I'm your AI hiring assistant. Tell me about the role you want to fill and I'll draft a professional job posting that you can refine inline before saving.\n\nTry something like:\n• "Post a senior frontend engineer role"\n• "I need a remote backend developer with $120k - $150k"\n• "Create a job for a UX designer in Berlin"`,
       timestamp: new Date(),
     },
   ]);
@@ -214,9 +242,27 @@ const CompanyChat = () => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const updateDraft = (msgId: string, updates: Partial<Job>) => {
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== msgId || !m.draftJob) return m;
+        const updated = { ...m.draftJob, ...updates };
+        return { ...m, draftJob: updated, suggestions: generateSuggestions(updated) };
+      })
+    );
+  };
+
+  const saveDraft = (msgId: string) => {
+    const msg = messages.find((m) => m.id === msgId);
+    if (!msg?.draftJob) return;
+    addJob(msg.draftJob);
+    setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, saved: true } : m)));
+    toast.success("Draft saved to Jobs");
+  };
+
   const handleSend = async () => {
     if (!input.trim() || !user) return;
-    const userMsg: ChatMessage = {
+    const userMsg: DraftMessage = {
       id: crypto.randomUUID(),
       role: "user",
       content: input,
@@ -226,73 +272,183 @@ const CompanyChat = () => {
     setInput("");
     setIsTyping(true);
 
-    // Simulate AI thinking
-    await new Promise((r) => setTimeout(r, 1200));
+    await new Promise((r) => setTimeout(r, 1000));
 
     const job = generateJobFromPrompt(input, user.id, user.company || user.name);
+    const suggestions = generateSuggestions(job);
 
-    const advancedSection = [
-      job.industryExperience?.length ? `\n**Industry Experience:**\n${job.industryExperience.map((s) => `• ${s}`).join("\n")}` : "",
-      job.softSkills?.length ? `\n**Soft Skills:**\n${job.softSkills.map((s) => `• ${s}`).join("\n")}` : "",
-      job.culturalFit?.length ? `\n**Cultural Fit:**\n${job.culturalFit.map((s) => `• ${s}`).join("\n")}` : "",
-    ].join("");
-
-    const response: ChatMessage = {
+    const response: DraftMessage = {
       id: crypto.randomUUID(),
       role: "assistant",
-      content: `Great! I've drafted a **${job.title}** position. Here's what I've put together:\n\n**📋 ${job.title}**\n${job.description}\n\n**Requirements:**\n${job.requirements.map((r) => `• ${r}`).join("\n")}\n\n**Preferred Skills:**\n${job.preferredSkills.map((s) => `• ${s}`).join("\n")}${advancedSection}\n\n**Experience:** ${job.experienceRequired}\n**Location:** ${job.location} · ${job.type}\n\nThe job has been saved as a **draft**. You can edit it in the Jobs tab or publish it right away. Would you like to create another role?`,
+      content: `I've drafted a **${job.title}** posting. Review and edit any field below — when it looks right, click **Save Draft** to add it to your Jobs.`,
       timestamp: new Date(),
-      jobData: job,
+      draftJob: job,
+      suggestions,
     };
 
-    addJob(job);
     setMessages((prev) => [...prev, response]);
     setIsTyping(false);
   };
+
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)]">
       <div className="flex-1 overflow-auto p-4 lg:p-8">
         <div className="max-w-2xl mx-auto space-y-4">
           {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex animate-fade-in ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line ${
-                  msg.role === "user"
-                    ? "chat-bubble-user text-foreground"
-                    : "chat-bubble-ai"
-                }`}
-              >
-                {msg.role === "assistant" && (
-                  <div className="flex items-center gap-1.5 mb-2 text-primary">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">HireAI</span>
-                  </div>
-                )}
-                {msg.content.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
-                  part.startsWith("**") && part.endsWith("**") ? (
-                    <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>
-                  ) : (
-                    <span key={i}>{part}</span>
-                  )
-                )}
-                {msg.jobData && (
-                  <div className="mt-3 flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-xs"
-                      onClick={() => navigate("/jobs")}
-                    >
-                      <Briefcase className="h-3 w-3 mr-1" />
-                      View in Jobs
-                    </Button>
-                  </div>
-                )}
+            <div key={msg.id} className="space-y-3 animate-fade-in">
+              <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line ${
+                    msg.role === "user" ? "chat-bubble-user text-foreground" : "chat-bubble-ai"
+                  }`}
+                >
+                  {msg.role === "assistant" && (
+                    <div className="flex items-center gap-1.5 mb-2 text-primary">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span className="text-xs font-medium">HireAI</span>
+                    </div>
+                  )}
+                  {msg.content.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
+                    part.startsWith("**") && part.endsWith("**") ? (
+                      <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>
+                    ) : (
+                      <span key={i}>{part}</span>
+                    )
+                  )}
+                </div>
               </div>
+
+              {msg.draftJob && (
+                <div className="glass-card rounded-xl p-4 space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Draft Job — Editable
+                      </span>
+                    </div>
+                    {msg.saved && (
+                      <Badge variant="secondary" className="match-badge-high text-xs">
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> Saved
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Title</label>
+                      <Input
+                        value={msg.draftJob.title}
+                        onChange={(e) => updateDraft(msg.id, { title: e.target.value })}
+                        disabled={msg.saved}
+                        className="mt-1 h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Experience</label>
+                      <Input
+                        value={msg.draftJob.experienceRequired}
+                        onChange={(e) => updateDraft(msg.id, { experienceRequired: e.target.value })}
+                        disabled={msg.saved}
+                        className="mt-1 h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Location</label>
+                      <Input
+                        value={msg.draftJob.location}
+                        onChange={(e) => updateDraft(msg.id, { location: e.target.value })}
+                        disabled={msg.saved}
+                        className="mt-1 h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Salary (optional)</label>
+                      <Input
+                        value={msg.draftJob.salary || ""}
+                        onChange={(e) => updateDraft(msg.id, { salary: e.target.value })}
+                        disabled={msg.saved}
+                        placeholder="$120k - $150k"
+                        className="mt-1 h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Description</label>
+                    <Textarea
+                      value={msg.draftJob.description}
+                      onChange={(e) => updateDraft(msg.id, { description: e.target.value })}
+                      disabled={msg.saved}
+                      rows={3}
+                      className="mt-1 text-sm"
+                    />
+                  </div>
+
+                  <TagInput
+                    label="Requirements"
+                    tags={msg.draftJob.requirements}
+                    onAdd={(t) => updateDraft(msg.id, { requirements: [...msg.draftJob!.requirements, t] })}
+                    onRemove={(t) => updateDraft(msg.id, { requirements: msg.draftJob!.requirements.filter((x) => x !== t) })}
+                    placeholder="Add a requirement..."
+                  />
+                  <TagInput
+                    label="Preferred Skills"
+                    tags={msg.draftJob.preferredSkills}
+                    onAdd={(t) => updateDraft(msg.id, { preferredSkills: [...msg.draftJob!.preferredSkills, t] })}
+                    onRemove={(t) => updateDraft(msg.id, { preferredSkills: msg.draftJob!.preferredSkills.filter((x) => x !== t) })}
+                    placeholder="Add a preferred skill..."
+                  />
+                  <TagInput
+                    label="Industry Experience"
+                    tags={msg.draftJob.industryExperience || []}
+                    onAdd={(t) => updateDraft(msg.id, { industryExperience: [...(msg.draftJob!.industryExperience || []), t] })}
+                    onRemove={(t) => updateDraft(msg.id, { industryExperience: (msg.draftJob!.industryExperience || []).filter((x) => x !== t) })}
+                    placeholder="e.g. SaaS, Fintech..."
+                  />
+                  <TagInput
+                    label="Soft Skills"
+                    tags={msg.draftJob.softSkills || []}
+                    onAdd={(t) => updateDraft(msg.id, { softSkills: [...(msg.draftJob!.softSkills || []), t] })}
+                    onRemove={(t) => updateDraft(msg.id, { softSkills: (msg.draftJob!.softSkills || []).filter((x) => x !== t) })}
+                    placeholder="e.g. Leadership, Communication..."
+                  />
+                  <TagInput
+                    label="Cultural Fit"
+                    tags={msg.draftJob.culturalFit || []}
+                    onAdd={(t) => updateDraft(msg.id, { culturalFit: [...(msg.draftJob!.culturalFit || []), t] })}
+                    onRemove={(t) => updateDraft(msg.id, { culturalFit: (msg.draftJob!.culturalFit || []).filter((x) => x !== t) })}
+                    placeholder="e.g. Collaborative, Remote-first..."
+                  />
+
+                  <div className="flex gap-2 pt-1">
+                    <Button size="sm" onClick={() => saveDraft(msg.id)} disabled={msg.saved}>
+                      <Save className="h-3.5 w-3.5 mr-1" />
+                      {msg.saved ? "Saved" : "Save Draft"}
+                    </Button>
+                    {msg.saved && (
+                      <Button size="sm" variant="outline" onClick={() => navigate("/jobs")}>
+                        <Briefcase className="h-3.5 w-3.5 mr-1" /> View in Jobs
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {msg.suggestions && msg.suggestions.length > 0 && !msg.saved && (
+                <div className="rounded-xl border border-primary/20 bg-accent/40 p-4">
+                  <div className="flex items-center gap-1.5 mb-2 text-primary">
+                    <Lightbulb className="h-3.5 w-3.5" />
+                    <span className="text-xs font-semibold uppercase tracking-wide">AI Suggestions</span>
+                  </div>
+                  <ul className="space-y-1.5">
+                    {msg.suggestions.map((s, i) => (
+                      <li key={i} className="text-xs leading-relaxed text-foreground/90">{s}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           ))}
           {isTyping && (
