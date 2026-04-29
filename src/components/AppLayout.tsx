@@ -111,9 +111,6 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
           </nav>
         </div>
 
-        {/* Mobile center logo (since hamburger replaced it on the left) */}
-        <div className="sm:hidden">{Logo}</div>
-
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground hidden sm:inline">
             {user.name} {user.company && `· ${user.company}`}

@@ -16,6 +16,7 @@ import CandidateJobs from "./pages/CandidateJobs";
 import CandidateProfilePage from "./pages/CandidateProfile";
 import CandidateApplications from "./pages/CandidateApplications";
 import CandidateChat from "./pages/CandidateChat";
+import JobPreview from "./pages/JobPreview";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/job-preview" element={<JobPreview />} />
             <Route path="/*" element={<AuthenticatedRoutes />} />
           </Routes>
         </BrowserRouter>
