@@ -111,11 +111,14 @@ const CandidateJobs = () => {
     return { score, details, qualifies, missing, softSkillGaps, industryGaps, culturalGaps };
   };
 
-  // Extract unique values for filters
-  const locations = useMemo(() => [...new Set(activeJobs.map(j => j.location))], [activeJobs]);
+  // Comprehensive worldwide locations & industries, merged with anything present in jobs
+  const locations = useMemo(() => {
+    const fromJobs = activeJobs.map((j) => j.location);
+    return [...new Set([...WORLD_LOCATIONS, ...fromJobs])];
+  }, [activeJobs]);
   const industries = useMemo(() => {
-    const all = activeJobs.flatMap(j => j.industryExperience || []);
-    return [...new Set(all)];
+    const fromJobs = activeJobs.flatMap((j) => j.industryExperience || []);
+    return [...new Set([...INDUSTRIES, ...fromJobs])];
   }, [activeJobs]);
 
   // Filter jobs
