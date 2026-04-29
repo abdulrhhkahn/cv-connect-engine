@@ -198,15 +198,39 @@ const generateJobFromPrompt = (prompt: string, companyId: string, companyName: s
   };
 };
 
+// Generate interactive AI suggestions for a draft job
+const generateSuggestions = (job: Job): string[] => {
+  const tips: string[] = [];
+  if (!job.salary) tips.push("💰 Consider adding a salary range — postings with salary info get 30% more applications.");
+  if (!job.industryExperience || job.industryExperience.length === 0) tips.push("🏢 Specify industry experience to attract candidates with the right background.");
+  if (!job.softSkills || job.softSkills.length < 3) tips.push("🤝 Add a few soft skills (e.g. communication, ownership) — they help screen for cultural fit.");
+  if (!job.culturalFit || job.culturalFit.length === 0) tips.push("🌱 Describe your team culture — values like 'remote-first' or 'collaborative' attract aligned candidates.");
+  if (job.requirements.length > 7) tips.push("✂️ You have many hard requirements. Consider moving some to 'preferred skills' to widen your candidate pool.");
+  if (job.location === "On-site") tips.push("🌍 Offering remote or hybrid work can dramatically expand your talent pool.");
+  if (!job.description.toLowerCase().includes("benefit") && !job.description.toLowerCase().includes("perk")) {
+    tips.push("🎁 Mention key benefits or perks in the description (health, equity, learning budget, PTO).");
+  }
+  if (!/diversit|inclus|equal opportunity/i.test(job.description)) {
+    tips.push("✨ Add a diversity & inclusion statement to encourage applications from underrepresented groups.");
+  }
+  return tips.slice(0, 4);
+};
+
+interface DraftMessage extends ChatMessage {
+  draftJob?: Job;
+  saved?: boolean;
+  suggestions?: string[];
+}
+
 const CompanyChat = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { addJob } = useJobStore();
-  const [messages, setMessages] = useState<ChatMessage[]>([
+  const [messages, setMessages] = useState<DraftMessage[]>([
     {
       id: "welcome",
       role: "assistant",
-      content: `Hi ${user?.name}! 👋 I'm your AI hiring assistant. Tell me about the role you want to fill and I'll create a professional job posting for you.\n\nTry something like:\n• "Post a senior frontend engineer role"\n• "I need a remote backend developer"\n• "Create a job for a UX designer"`,
+      content: `Hi ${user?.name}! 👋 I'm your AI hiring assistant. Tell me about the role you want to fill and I'll draft a professional job posting that you can refine inline before saving.\n\nTry something like:\n• "Post a senior frontend engineer role"\n• "I need a remote backend developer with $120k - $150k"\n• "Create a job for a UX designer in Berlin"`,
       timestamp: new Date(),
     },
   ]);
@@ -218,9 +242,27 @@ const CompanyChat = () => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const updateDraft = (msgId: string, updates: Partial<Job>) => {
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== msgId || !m.draftJob) return m;
+        const updated = { ...m.draftJob, ...updates };
+        return { ...m, draftJob: updated, suggestions: generateSuggestions(updated) };
+      })
+    );
+  };
+
+  const saveDraft = (msgId: string) => {
+    const msg = messages.find((m) => m.id === msgId);
+    if (!msg?.draftJob) return;
+    addJob(msg.draftJob);
+    setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, saved: true } : m)));
+    toast.success("Draft saved to Jobs");
+  };
+
   const handleSend = async () => {
     if (!input.trim() || !user) return;
-    const userMsg: ChatMessage = {
+    const userMsg: DraftMessage = {
       id: crypto.randomUUID(),
       role: "user",
       content: input,
@@ -230,29 +272,24 @@ const CompanyChat = () => {
     setInput("");
     setIsTyping(true);
 
-    // Simulate AI thinking
-    await new Promise((r) => setTimeout(r, 1200));
+    await new Promise((r) => setTimeout(r, 1000));
 
     const job = generateJobFromPrompt(input, user.id, user.company || user.name);
+    const suggestions = generateSuggestions(job);
 
-    const advancedSection = [
-      job.industryExperience?.length ? `\n**Industry Experience:**\n${job.industryExperience.map((s) => `• ${s}`).join("\n")}` : "",
-      job.softSkills?.length ? `\n**Soft Skills:**\n${job.softSkills.map((s) => `• ${s}`).join("\n")}` : "",
-      job.culturalFit?.length ? `\n**Cultural Fit:**\n${job.culturalFit.map((s) => `• ${s}`).join("\n")}` : "",
-    ].join("");
-
-    const response: ChatMessage = {
+    const response: DraftMessage = {
       id: crypto.randomUUID(),
       role: "assistant",
-      content: `Great! I've drafted a **${job.title}** position. Here's what I've put together:\n\n**📋 ${job.title}**\n${job.description}\n\n**Requirements:**\n${job.requirements.map((r) => `• ${r}`).join("\n")}\n\n**Preferred Skills:**\n${job.preferredSkills.map((s) => `• ${s}`).join("\n")}${advancedSection}\n\n**Experience:** ${job.experienceRequired}\n**Location:** ${job.location} · ${job.type}\n\nThe job has been saved as a **draft**. You can edit it in the Jobs tab or publish it right away. Would you like to create another role?`,
+      content: `I've drafted a **${job.title}** posting. Review and edit any field below — when it looks right, click **Save Draft** to add it to your Jobs.`,
       timestamp: new Date(),
-      jobData: job,
+      draftJob: job,
+      suggestions,
     };
 
-    addJob(job);
     setMessages((prev) => [...prev, response]);
     setIsTyping(false);
   };
+
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)]">
