@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Send, Sparkles, Briefcase, Save, CheckCircle2, Lightbulb } from "lucide-react";
+import { Send, Sparkles, Briefcase, Save, CheckCircle2, Lightbulb, FileDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useJobStore } from "@/lib/store";
 import TagInput from "@/components/TagInput";
+import MicButton from "@/components/MicButton";
+import JobPreviewDialog from "@/components/JobPreviewDialog";
 import { toast } from "sonner";
 
 const roleTemplates: Record<string, { keywords: string[]; title: string; description: string; requirements: string[]; preferredSkills: string[]; experience: string; industryExperience: string[]; softSkills: string[]; culturalFit: string[] }> = {
@@ -236,6 +238,7 @@ const CompanyChat = () => {
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [previewJob, setPreviewJob] = useState<Job | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -422,10 +425,13 @@ const CompanyChat = () => {
                     placeholder="e.g. Collaborative, Remote-first..."
                   />
 
-                  <div className="flex gap-2 pt-1">
+                  <div className="flex flex-wrap gap-2 pt-1">
                     <Button size="sm" onClick={() => saveDraft(msg.id)} disabled={msg.saved}>
                       <Save className="h-3.5 w-3.5 mr-1" />
                       {msg.saved ? "Saved" : "Save Draft"}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setPreviewJob(msg.draftJob!)}>
+                      <FileDown className="h-3.5 w-3.5 mr-1" /> Export / Preview
                     </Button>
                     {msg.saved && (
                       <Button size="sm" variant="outline" onClick={() => navigate("/jobs")}>
@@ -475,11 +481,13 @@ const CompanyChat = () => {
             placeholder="Describe the role you want to post..."
             className="flex-1"
           />
+          <MicButton onTranscript={(t) => setInput((prev) => (prev ? prev + " " : "") + t)} disabled={isTyping} />
           <Button onClick={handleSend} disabled={!input.trim() || isTyping}>
             <Send className="h-4 w-4" />
           </Button>
         </div>
       </div>
+      <JobPreviewDialog open={!!previewJob} onOpenChange={(o) => !o && setPreviewJob(null)} job={previewJob} />
     </div>
   );
 };
