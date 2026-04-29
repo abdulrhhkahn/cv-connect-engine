@@ -48,9 +48,96 @@ const CandidateProfilePage = () => {
     }
   }, [profile, user]);
 
-  const handleCvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const parseCvText = async (file: File): Promise<string> => {
+    // Best-effort text extraction. PDFs/DOCs are binary; we read as text and
+    // also fall back to the file name. Real parsing would happen server-side.
+    try {
+      const text = await file.text();
+      return text;
+    } catch {
+      return file.name;
+    }
+  };
+
+  const extractFromCv = (text: string) => {
+    const lower = text.toLowerCase();
+    const data: Partial<ProfileType> = {};
+
+    const emailMatch = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+    if (emailMatch) data.email = emailMatch[0];
+
+    const phoneMatch = text.match(/(\+?\d[\d\s().-]{7,}\d)/);
+    if (phoneMatch) data.phone = phoneMatch[0].trim();
+
+    const linkedInMatch = text.match(/(linkedin\.com\/in\/[\w-]+)/i);
+    if (linkedInMatch) data.linkedIn = linkedInMatch[0];
+
+    const portfolioMatch = text.match(/https?:\/\/(?!.*linkedin)[\w.-]+\.[a-z]{2,}[\w/.-]*/i);
+    if (portfolioMatch) data.portfolio = portfolioMatch[0];
+
+    // Naive name: first non-empty line that looks like a person name
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const nameLine = lines.find((l) => /^[A-Z][a-z]+(\s[A-Z][a-z'-]+){1,3}$/.test(l));
+    if (nameLine) data.name = nameLine;
+
+    // Common skills lookup
+    const skillVocab = [
+      "React", "TypeScript", "JavaScript", "Node.js", "Python", "Java", "Go", "Ruby",
+      "PostgreSQL", "MySQL", "MongoDB", "Redis", "GraphQL", "REST", "Docker", "Kubernetes",
+      "AWS", "GCP", "Azure", "Tailwind", "Next.js", "Vue", "Angular", "Swift", "Kotlin",
+      "Figma", "SQL", "TensorFlow", "PyTorch", "Git", "CI/CD",
+    ];
+    const foundSkills = skillVocab.filter((s) => new RegExp(`\\b${s.replace(/[.+]/g, "\\$&")}\\b`, "i").test(text));
+    if (foundSkills.length) data.skills = foundSkills;
+
+    // Years of experience
+    const expMatch = text.match(/(\d+)\+?\s*years?\s+(of\s+)?experience/i);
+    if (expMatch) data.experience = `${expMatch[1]}+ years`;
+
+    // Education hint
+    const eduMatch = text.match(/(B\.?Sc\.?|M\.?Sc\.?|B\.?A\.?|M\.?A\.?|MBA|Ph\.?D\.?|Bachelor|Master)[^\n,]{0,80}/i);
+    if (eduMatch) data.education = eduMatch[0].trim();
+
+    // Title heuristic
+    const titleMatch = text.match(/(senior|junior|lead|principal|staff)?\s*(software|frontend|backend|full[\s-]?stack|data|product|ux|ui|devops|mobile)\s*(engineer|developer|designer|scientist|manager)/i);
+    if (titleMatch) data.title = titleMatch[0].replace(/\s+/g, " ").trim();
+
+    // Industry hints
+    const industryHints = ["SaaS", "Fintech", "Healthcare", "E-commerce", "Education", "Gaming", "AI/ML"];
+    const foundIndustries = industryHints.filter((i) => lower.includes(i.toLowerCase()));
+    if (foundIndustries.length) data.industryExperience = foundIndustries;
+
+    // Soft skills
+    const softVocab = ["Leadership", "Communication", "Teamwork", "Collaboration", "Problem-solving", "Adaptability", "Mentoring", "Empathy"];
+    const foundSoft = softVocab.filter((s) => lower.includes(s.toLowerCase()));
+    if (foundSoft.length) data.softSkills = foundSoft;
+
+    return data;
+  };
+
+  const handleCvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) { setCvFile(file.name); toast.success(`CV "${file.name}" uploaded`); }
+    if (!file) return;
+    setCvFile(file.name);
+    toast.success(`CV "${file.name}" uploaded`);
+
+    const text = await parseCvText(file);
+    const extracted = extractFromCv(text);
+
+    // Only fill fields that are currently empty
+    setForm((prev) => {
+      const merged: Partial<ProfileType> = { ...prev };
+      const isEmpty = (v: unknown) => v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
+      let filled = 0;
+      (Object.keys(extracted) as (keyof ProfileType)[]).forEach((k) => {
+        if (isEmpty(merged[k])) {
+          (merged as Record<string, unknown>)[k] = extracted[k];
+          filled++;
+        }
+      });
+      if (filled > 0) toast.success(`Auto-filled ${filled} field${filled === 1 ? "" : "s"} from your CV`);
+      return merged;
+    });
   };
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
