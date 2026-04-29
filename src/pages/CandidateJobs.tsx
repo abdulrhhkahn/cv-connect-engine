@@ -14,6 +14,7 @@ import {
 import { Job, Application } from "@/lib/types";
 import { Briefcase, MapPin, Clock, DollarSign, CheckCircle2, AlertTriangle, XCircle, Users, Heart, Building2, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
+import { WORLD_LOCATIONS, INDUSTRIES } from "@/lib/reference-data";
 
 const CandidateJobs = () => {
   const { user } = useAuth();
