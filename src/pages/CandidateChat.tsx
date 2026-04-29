@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Send, Sparkles, Briefcase, MapPin, Clock } from "lucide-react";
+import MicButton from "@/components/MicButton";
 
 interface ChatMsg {
   id: string;
@@ -385,6 +386,7 @@ const CandidateChat = () => {
             placeholder="Ask about jobs, your fit, how to apply..."
             className="flex-1"
           />
+          <MicButton onTranscript={(t) => setInput((prev) => (prev ? prev + " " : "") + t)} disabled={isTyping} />
           <Button onClick={handleSend} disabled={!input.trim() || isTyping}>
             <Send className="h-4 w-4" />
           </Button>
