@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Send, Sparkles, Briefcase, Save, CheckCircle2, Lightbulb, X } from "lucide-react";
+import { Send, Sparkles, Briefcase, Save, CheckCircle2, Lightbulb } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useJobStore } from "@/lib/store";
 import TagInput from "@/components/TagInput";
