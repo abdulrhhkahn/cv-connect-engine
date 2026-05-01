@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Sparkles, LogOut, Briefcase, User, MessageSquare, FileText, Building2, Menu, Sun, Moon } from "lucide-react";
+import { Sparkles, LogOut, Briefcase, User, MessageSquare, FileText, Building2, Menu, Sun, Moon, CalendarCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
