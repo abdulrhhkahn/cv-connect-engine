@@ -53,6 +53,7 @@ ${job.culturalFit?.length ? `<h2>Cultural Fit</h2><div class="badges">${job.cult
 </body></html>`;
     w.document.write(html);
     w.document.close();
+    recordExport("pdf", buildShareablePayload(job));
   };
 
   const handleCopyLink = async () => {
@@ -60,6 +61,7 @@ ${job.culturalFit?.length ? `<h2>Cultural Fit</h2><div class="badges">${job.cult
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Shareable preview link copied to clipboard");
+      recordExport("share-link", url);
     } catch {
       toast.error("Could not copy link. Long-press the URL to copy: " + url.slice(0, 60) + "…");
     }
