@@ -4,8 +4,9 @@ import { useJobStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle2, XCircle, Clock, Star, User, MapPin, Phone, Mail, Globe, Linkedin, Briefcase, GraduationCap, Building2, Users, Heart } from "lucide-react";
-import { CandidateProfile } from "@/lib/types";
+import { CheckCircle2, XCircle, Clock, Star, User, MapPin, Phone, Mail, Globe, Linkedin, Briefcase, GraduationCap, Building2, Users, Heart, CalendarPlus } from "lucide-react";
+import { CandidateProfile, Application } from "@/lib/types";
+import ScheduleInterviewDialog from "@/components/ScheduleInterviewDialog";
 
 const statusIcons: Record<string, typeof Clock> = {
   pending: Clock,
