@@ -85,6 +85,9 @@ const CompanyApplicants = () => {
                         <User className="h-4 w-4" />
                       </Button>
                     )}
+                    <Button size="sm" variant="outline" onClick={() => setScheduleApp(app)} title="Schedule interview">
+                      <CalendarPlus className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
