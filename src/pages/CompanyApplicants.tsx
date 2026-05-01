@@ -184,6 +184,13 @@ const CompanyApplicants = () => {
           </DialogContent>
         )}
       </Dialog>
+
+      <ScheduleInterviewDialog
+        open={!!scheduleApp}
+        onOpenChange={(o) => !o && setScheduleApp(null)}
+        application={scheduleApp}
+        job={scheduleApp ? getJob(scheduleApp.jobId) : null}
+      />
     </div>
   );
 };
