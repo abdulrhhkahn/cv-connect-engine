@@ -91,5 +91,25 @@ export const useJobStore = () => {
       });
       notify();
     },
+
+    addInterview: (interview: Interview) => {
+      globalInterviews = [interview, ...globalInterviews];
+      notify();
+    },
+
+    updateInterview: (id: string, updates: Partial<Interview>) => {
+      globalInterviews = globalInterviews.map((i) => (i.id === id ? { ...i, ...updates } : i));
+      notify();
+    },
+
+    cancelInterview: (id: string) => {
+      globalInterviews = globalInterviews.map((i) => (i.id === id ? { ...i, status: "cancelled" } : i));
+      notify();
+    },
+
+    addExportHistory: (entry: ExportHistoryEntry) => {
+      globalExportHistory = [entry, ...globalExportHistory].slice(0, 50);
+      notify();
+    },
   };
 };
