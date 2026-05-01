@@ -2,8 +2,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Job } from "@/lib/types";
-import { Download, Link as LinkIcon, Printer } from "lucide-react";
+import { Download, Link as LinkIcon, Printer, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { useJobStore } from "@/lib/store";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
   open: boolean;
@@ -19,7 +21,21 @@ const buildShareablePayload = (job: Job) => {
 };
 
 const JobPreviewDialog = ({ open, onOpenChange, job }: Props) => {
+  const { user } = useAuth();
+  const { addExportHistory } = useJobStore();
   if (!job) return null;
+
+  const recordExport = (type: "share-link" | "pdf", shareUrl: string) => {
+    if (!user || !job) return;
+    addExportHistory({
+      id: crypto.randomUUID(),
+      companyId: user.id,
+      jobSnapshot: job,
+      shareUrl,
+      createdAt: new Date(),
+      type,
+    });
+  };
 
   const handlePrintPdf = () => {
     const w = window.open("", "_blank", "width=900,height=1000");
@@ -51,6 +67,7 @@ ${job.culturalFit?.length ? `<h2>Cultural Fit</h2><div class="badges">${job.cult
 </body></html>`;
     w.document.write(html);
     w.document.close();
+    recordExport("pdf", buildShareablePayload(job));
   };
 
   const handleCopyLink = async () => {
@@ -58,6 +75,7 @@ ${job.culturalFit?.length ? `<h2>Cultural Fit</h2><div class="badges">${job.cult
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Shareable preview link copied to clipboard");
+      recordExport("share-link", url);
     } catch {
       toast.error("Could not copy link. Long-press the URL to copy: " + url.slice(0, 60) + "…");
     }

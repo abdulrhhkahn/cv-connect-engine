@@ -1,11 +1,13 @@
 import { useState, useCallback } from "react";
-import { Job, Application, CandidateProfile, CompanyProfile } from "./types";
+import { Job, Application, CandidateProfile, CompanyProfile, Interview, ExportHistoryEntry } from "./types";
 import { mockJobs, mockApplications, mockCandidateProfiles, mockCompanyProfiles } from "./mock-data";
 
 let globalJobs = [...mockJobs];
 let globalApplications = [...mockApplications];
 let globalProfiles = [...mockCandidateProfiles];
 let globalCompanyProfiles = [...mockCompanyProfiles];
+let globalInterviews: Interview[] = [];
+let globalExportHistory: ExportHistoryEntry[] = [];
 let listeners: (() => void)[] = [];
 
 const notify = () => listeners.forEach((l) => l());
@@ -26,6 +28,8 @@ export const useJobStore = () => {
     applications: globalApplications,
     profiles: globalProfiles,
     companyProfiles: globalCompanyProfiles,
+    interviews: globalInterviews,
+    exportHistory: globalExportHistory,
 
     addJob: (job: Job) => {
       globalJobs = [job, ...globalJobs];
@@ -85,6 +89,26 @@ export const useJobStore = () => {
         }
         return p;
       });
+      notify();
+    },
+
+    addInterview: (interview: Interview) => {
+      globalInterviews = [interview, ...globalInterviews];
+      notify();
+    },
+
+    updateInterview: (id: string, updates: Partial<Interview>) => {
+      globalInterviews = globalInterviews.map((i) => (i.id === id ? { ...i, ...updates } : i));
+      notify();
+    },
+
+    cancelInterview: (id: string) => {
+      globalInterviews = globalInterviews.map((i) => (i.id === id ? { ...i, status: "cancelled" } : i));
+      notify();
+    },
+
+    addExportHistory: (entry: ExportHistoryEntry) => {
+      globalExportHistory = [entry, ...globalExportHistory].slice(0, 50);
       notify();
     },
   };

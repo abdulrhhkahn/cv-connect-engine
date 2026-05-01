@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Sparkles, LogOut, Briefcase, User, MessageSquare, FileText, Building2, Menu, Sun, Moon } from "lucide-react";
+import { Sparkles, LogOut, Briefcase, User, MessageSquare, FileText, Building2, Menu, Sun, Moon, CalendarCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -20,12 +20,15 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
         { to: "/jobs", label: "Jobs", icon: Briefcase },
         { to: "/applicants", label: "Applicants", icon: User },
         { to: "/company-profile", label: "Company", icon: Building2 },
+        { to: "/interviews", label: "Interviews", icon: CalendarCheck },
       ]
     : [
         { to: "/chat", label: "AI Chat", icon: MessageSquare },
         { to: "/dashboard", label: "Jobs", icon: Briefcase },
         { to: "/my-applications", label: "Applications", icon: FileText },
+        { to: "/companies", label: "Companies", icon: Building2 },
         { to: "/profile", label: "Profile", icon: User },
+        { to: "/interviews", label: "Interviews", icon: CalendarCheck },
       ];
 
   const Logo = (

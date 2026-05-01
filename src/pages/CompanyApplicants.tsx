@@ -4,8 +4,9 @@ import { useJobStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle2, XCircle, Clock, Star, User, MapPin, Phone, Mail, Globe, Linkedin, Briefcase, GraduationCap, Building2, Users, Heart } from "lucide-react";
-import { CandidateProfile } from "@/lib/types";
+import { CheckCircle2, XCircle, Clock, Star, User, MapPin, Phone, Mail, Globe, Linkedin, Briefcase, GraduationCap, Building2, Users, Heart, CalendarPlus } from "lucide-react";
+import { CandidateProfile, Application } from "@/lib/types";
+import ScheduleInterviewDialog from "@/components/ScheduleInterviewDialog";
 
 const statusIcons: Record<string, typeof Clock> = {
   pending: Clock,
@@ -18,6 +19,7 @@ const CompanyApplicants = () => {
   const { user } = useAuth();
   const { jobs, applications, updateApplication, profiles } = useJobStore();
   const [selectedProfile, setSelectedProfile] = useState<CandidateProfile | null>(null);
+  const [scheduleApp, setScheduleApp] = useState<Application | null>(null);
 
   const myJobIds = jobs.filter((j) => j.companyId === user?.id).map((j) => j.id);
   const myApplications = applications.filter((a) => myJobIds.includes(a.jobId));
@@ -83,6 +85,9 @@ const CompanyApplicants = () => {
                         <User className="h-4 w-4" />
                       </Button>
                     )}
+                    <Button size="sm" variant="outline" onClick={() => setScheduleApp(app)} title="Schedule interview">
+                      <CalendarPlus className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -179,6 +184,13 @@ const CompanyApplicants = () => {
           </DialogContent>
         )}
       </Dialog>
+
+      <ScheduleInterviewDialog
+        open={!!scheduleApp}
+        onOpenChange={(o) => !o && setScheduleApp(null)}
+        application={scheduleApp}
+        job={scheduleApp ? getJob(scheduleApp.jobId) : null}
+      />
     </div>
   );
 };

@@ -14,11 +14,12 @@ import {
 import { Job, Application } from "@/lib/types";
 import { Briefcase, MapPin, Clock, DollarSign, CheckCircle2, AlertTriangle, XCircle, Users, Heart, Building2, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import { WORLD_LOCATIONS, INDUSTRIES } from "@/lib/reference-data";
 
 const CandidateJobs = () => {
   const { user } = useAuth();
-  const { jobs, applications, addApplication, getProfile } = useJobStore();
+  const { jobs, applications, addApplication, getProfile, companyProfiles, toggleFollow } = useJobStore();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
@@ -298,13 +299,37 @@ const CandidateJobs = () => {
       <Dialog open={!!selectedJob} onOpenChange={(o) => !o && setSelectedJob(null)}>
         {selectedJob && (() => {
           const match = calculateMatch(selectedJob);
+          const company = companyProfiles.find((c) => c.userId === selectedJob.companyId);
+          const isFollowing = !!(user && company?.followers?.includes(user.id));
           return (
             <DialogContent className="max-w-lg max-h-[85vh] overflow-auto">
               <DialogHeader>
                 <DialogTitle>{selectedJob.title}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">{selectedJob.companyName} · {selectedJob.location} · {selectedJob.type}</p>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <p className="text-sm text-muted-foreground">
+                    {company ? (
+                      <Link to={`/company/${selectedJob.companyId}`} className="font-medium text-foreground hover:underline">
+                        {selectedJob.companyName}
+                      </Link>
+                    ) : (
+                      <span className="font-medium text-foreground">{selectedJob.companyName}</span>
+                    )}
+                    {" · "}{selectedJob.location} · {selectedJob.type}
+                  </p>
+                  {company && user && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => toggleFollow(selectedJob.companyId, user.id)}
+                    >
+                      <Heart className={`h-3.5 w-3.5 mr-1 ${isFollowing ? "fill-current text-primary" : ""}`} />
+                      {isFollowing ? "Following" : "Follow"}
+                    </Button>
+                  )}
+                </div>
                 <p className="text-sm">{selectedJob.description}</p>
 
                 <div>

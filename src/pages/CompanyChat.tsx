@@ -11,6 +11,7 @@ import { useJobStore } from "@/lib/store";
 import TagInput from "@/components/TagInput";
 import MicButton from "@/components/MicButton";
 import JobPreviewDialog from "@/components/JobPreviewDialog";
+import ExportHistoryPanel from "@/components/ExportHistoryPanel";
 import { toast } from "sonner";
 
 const roleTemplates: Record<string, { keywords: string[]; title: string; description: string; requirements: string[]; preferredSkills: string[]; experience: string; industryExperience: string[]; softSkills: string[]; culturalFit: string[] }> = {
@@ -296,7 +297,10 @@ const CompanyChat = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)]">
-      <div className="flex-1 overflow-auto p-4 lg:p-8">
+      <div className="flex items-center justify-end px-4 lg:px-8 pt-4">
+        <ExportHistoryPanel />
+      </div>
+      <div className="flex-1 overflow-auto p-4 lg:p-8 pt-2">
         <div className="max-w-2xl mx-auto space-y-4">
           {messages.map((msg) => (
             <div key={msg.id} className="space-y-3 animate-fade-in">
