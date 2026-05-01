@@ -40,6 +40,30 @@ const JobPreview = () => {
     );
   }
 
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copied to clipboard");
+    } catch {
+      toast.error("Unable to copy link");
+    }
+  };
+
+  const handleNativeShare = async () => {
+    const shareData = {
+      title: `${job.title} at ${job.companyName}`,
+      text: `${job.title} — ${job.companyName} · ${job.location}`,
+      url: shareUrl,
+    };
+    if (navigator.share) {
+      try { await navigator.share(shareData); } catch { /* cancelled */ }
+    } else {
+      handleCopyLink();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="h-14 border-b border-border flex items-center justify-between px-4 lg:px-6">
@@ -49,9 +73,27 @@ const JobPreview = () => {
           </div>
           <span className="font-semibold text-sm">HireAI</span>
         </Link>
-        <Button variant="outline" size="sm" onClick={() => window.print()}>
-          <Printer className="h-4 w-4 mr-2" /> Print / PDF
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm">
+              <Share2 className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Share</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            {typeof navigator !== "undefined" && "share" in navigator && (
+              <DropdownMenuItem onClick={handleNativeShare}>
+                <Share2 className="h-4 w-4 mr-2" /> Share via…
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={handleCopyLink}>
+              <LinkIcon className="h-4 w-4 mr-2" /> Copy link
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => window.print()}>
+              <Printer className="h-4 w-4 mr-2" /> Print / Download PDF
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
       <main className="max-w-2xl mx-auto p-6 space-y-5">
         <div>
