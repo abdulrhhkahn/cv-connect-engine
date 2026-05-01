@@ -2,8 +2,15 @@ import { useEffect, useState } from "react";
 import { Job } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Printer } from "lucide-react";
+import { Sparkles, Printer, Share2, Link as LinkIcon } from "lucide-react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const decode = (hash: string): Job | null => {
   try {
