@@ -19,6 +19,7 @@ const CompanyApplicants = () => {
   const { user } = useAuth();
   const { jobs, applications, updateApplication, profiles } = useJobStore();
   const [selectedProfile, setSelectedProfile] = useState<CandidateProfile | null>(null);
+  const [scheduleApp, setScheduleApp] = useState<Application | null>(null);
 
   const myJobIds = jobs.filter((j) => j.companyId === user?.id).map((j) => j.id);
   const myApplications = applications.filter((a) => myJobIds.includes(a.jobId));
