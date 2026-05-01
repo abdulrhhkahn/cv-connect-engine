@@ -86,3 +86,29 @@ export interface ChatMessage {
   timestamp: Date;
   jobData?: Partial<Job>;
 }
+
+export interface Interview {
+  id: string;
+  jobId: string;
+  applicationId: string;
+  companyId: string;
+  companyName: string;
+  candidateId: string;
+  candidateName: string;
+  jobTitle: string;
+  scheduledAt: Date;
+  durationMins: number;
+  mode: "video" | "phone" | "onsite";
+  location?: string; // meeting link / address / phone number
+  notes?: string;
+  status: "scheduled" | "completed" | "cancelled";
+}
+
+export interface ExportHistoryEntry {
+  id: string;
+  companyId: string;
+  jobSnapshot: Job;
+  shareUrl: string;
+  createdAt: Date;
+  type: "share-link" | "pdf";
+}
