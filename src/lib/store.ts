@@ -1,11 +1,13 @@
 import { useState, useCallback } from "react";
-import { Job, Application, CandidateProfile, CompanyProfile } from "./types";
+import { Job, Application, CandidateProfile, CompanyProfile, Interview, ExportHistoryEntry } from "./types";
 import { mockJobs, mockApplications, mockCandidateProfiles, mockCompanyProfiles } from "./mock-data";
 
 let globalJobs = [...mockJobs];
 let globalApplications = [...mockApplications];
 let globalProfiles = [...mockCandidateProfiles];
 let globalCompanyProfiles = [...mockCompanyProfiles];
+let globalInterviews: Interview[] = [];
+let globalExportHistory: ExportHistoryEntry[] = [];
 let listeners: (() => void)[] = [];
 
 const notify = () => listeners.forEach((l) => l());
@@ -26,6 +28,8 @@ export const useJobStore = () => {
     applications: globalApplications,
     profiles: globalProfiles,
     companyProfiles: globalCompanyProfiles,
+    interviews: globalInterviews,
+    exportHistory: globalExportHistory,
 
     addJob: (job: Job) => {
       globalJobs = [job, ...globalJobs];
