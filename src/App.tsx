@@ -16,6 +16,8 @@ import CandidateJobs from "./pages/CandidateJobs";
 import CandidateProfilePage from "./pages/CandidateProfile";
 import CandidateApplications from "./pages/CandidateApplications";
 import CandidateChat from "./pages/CandidateChat";
+import CandidateCompanies from "./pages/CandidateCompanies";
+import Interviews from "./pages/Interviews";
 import JobPreview from "./pages/JobPreview";
 import NotFound from "./pages/NotFound";
 
@@ -38,6 +40,8 @@ const AuthenticatedRoutes = () => {
         <Route path="/profile" element={!isCompany ? <CandidateProfilePage /> : <Navigate to="/dashboard" />} />
         <Route path="/my-applications" element={!isCompany ? <CandidateApplications /> : <Navigate to="/dashboard" />} />
         <Route path="/chat" element={!isCompany ? <CandidateChat /> : <Navigate to="/dashboard" />} />
+        <Route path="/companies" element={!isCompany ? <CandidateCompanies /> : <Navigate to="/dashboard" />} />
+        <Route path="/interviews" element={<Interviews />} />
         <Route path="/" element={<Navigate to="/dashboard" />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
