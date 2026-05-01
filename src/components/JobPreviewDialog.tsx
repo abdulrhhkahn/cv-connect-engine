@@ -21,7 +21,21 @@ const buildShareablePayload = (job: Job) => {
 };
 
 const JobPreviewDialog = ({ open, onOpenChange, job }: Props) => {
+  const { user } = useAuth();
+  const { addExportHistory } = useJobStore();
   if (!job) return null;
+
+  const recordExport = (type: "share-link" | "pdf", shareUrl: string) => {
+    if (!user || !job) return;
+    addExportHistory({
+      id: crypto.randomUUID(),
+      companyId: user.id,
+      jobSnapshot: job,
+      shareUrl,
+      createdAt: new Date(),
+      type,
+    });
+  };
 
   const handlePrintPdf = () => {
     const w = window.open("", "_blank", "width=900,height=1000");
