@@ -14,11 +14,12 @@ import {
 import { Job, Application } from "@/lib/types";
 import { Briefcase, MapPin, Clock, DollarSign, CheckCircle2, AlertTriangle, XCircle, Users, Heart, Building2, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import { WORLD_LOCATIONS, INDUSTRIES } from "@/lib/reference-data";
 
 const CandidateJobs = () => {
   const { user } = useAuth();
-  const { jobs, applications, addApplication, getProfile } = useJobStore();
+  const { jobs, applications, addApplication, getProfile, companyProfiles, toggleFollow } = useJobStore();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
