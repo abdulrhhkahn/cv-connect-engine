@@ -2,8 +2,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Job } from "@/lib/types";
-import { Download, Link as LinkIcon, Printer } from "lucide-react";
+import { Download, Link as LinkIcon, Printer, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { useJobStore } from "@/lib/store";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
   open: boolean;
