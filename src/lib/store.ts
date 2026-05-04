@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Job, Application, CandidateProfile, CompanyProfile, Interview, ExportHistoryEntry } from "./types";
+import { Job, Application, CandidateProfile, CompanyProfile, Interview, ExportHistoryEntry, Notification } from "./types";
 import { mockJobs, mockApplications, mockCandidateProfiles, mockCompanyProfiles } from "./mock-data";
 
 let globalJobs = [...mockJobs];
@@ -8,6 +8,7 @@ let globalProfiles = [...mockCandidateProfiles];
 let globalCompanyProfiles = [...mockCompanyProfiles];
 let globalInterviews: Interview[] = [];
 let globalExportHistory: ExportHistoryEntry[] = [];
+let globalNotifications: Notification[] = [];
 let listeners: (() => void)[] = [];
 
 const notify = () => listeners.forEach((l) => l());
@@ -30,6 +31,32 @@ export const useJobStore = () => {
     companyProfiles: globalCompanyProfiles,
     interviews: globalInterviews,
     exportHistory: globalExportHistory,
+    notifications: globalNotifications,
+
+    addNotification: (n: Omit<Notification, "id" | "read" | "createdAt"> & Partial<Pick<Notification, "id" | "read" | "createdAt">>) => {
+      const full: Notification = {
+        id: n.id || crypto.randomUUID(),
+        read: n.read ?? false,
+        createdAt: n.createdAt || new Date(),
+        userId: n.userId,
+        title: n.title,
+        message: n.message,
+        type: n.type,
+        link: n.link,
+      };
+      globalNotifications = [full, ...globalNotifications].slice(0, 200);
+      notify();
+    },
+
+    markNotificationRead: (id: string) => {
+      globalNotifications = globalNotifications.map((n) => (n.id === id ? { ...n, read: true } : n));
+      notify();
+    },
+
+    markAllNotificationsRead: (userId: string) => {
+      globalNotifications = globalNotifications.map((n) => (n.userId === userId ? { ...n, read: true } : n));
+      notify();
+    },
 
     addJob: (job: Job) => {
       globalJobs = [job, ...globalJobs];
