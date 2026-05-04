@@ -127,7 +127,18 @@ const CompanyJobs = () => {
     setEditingJob(null);
   };
 
-  const handleUpload = async (file: File) => {
+  // Open editor when arriving via ?edit=<jobId>
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId) {
+      const job = jobs.find((j) => j.id === editId && j.companyId === user?.id);
+      if (job) openEdit(job);
+      const next = new URLSearchParams(searchParams);
+      next.delete("edit");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, jobs.length]);
     if (!user) return;
     const isText = /\.(txt|md|markdown)$/i.test(file.name) || file.type.startsWith("text/");
     if (!isText) {
