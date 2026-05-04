@@ -19,7 +19,7 @@ interface Props {
 
 const ScheduleInterviewDialog = ({ open, onOpenChange, application, job }: Props) => {
   const { user } = useAuth();
-  const { addInterview, updateApplication } = useJobStore();
+  const { addInterview, updateApplication, addNotification } = useJobStore();
   const [date, setDate] = useState("");
   const [time, setTime] = useState("10:00");
   const [duration, setDuration] = useState("30");
@@ -52,13 +52,21 @@ const ScheduleInterviewDialog = ({ open, onOpenChange, application, job }: Props
       mode,
       location: location.trim() || undefined,
       notes: notes.trim() || undefined,
-      status: "scheduled",
+      status: "pending_confirmation",
+      candidateConfirmed: false,
     };
     addInterview(interview);
     if (application.status === "pending") {
       updateApplication(application.id, { status: "reviewed" });
     }
-    toast.success(`Interview scheduled with ${application.candidateName}`);
+    addNotification({
+      userId: application.candidateId,
+      title: "Interview invitation",
+      message: `${job.companyName} invited you to interview for "${job.title}" on ${scheduledAt.toLocaleString()}. Please confirm.`,
+      type: "interview",
+      link: "/interviews",
+    });
+    toast.success(`Invitation sent to ${application.candidateName}`);
     onOpenChange(false);
     setDate(""); setTime("10:00"); setDuration("30"); setMode("video"); setLocation(""); setNotes("");
   };
