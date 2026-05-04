@@ -139,6 +139,8 @@ const CompanyJobs = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, jobs.length]);
+
+  const handleUpload = async (file: File) => {
     if (!user) return;
     const isText = /\.(txt|md|markdown)$/i.test(file.name) || file.type.startsWith("text/");
     if (!isText) {
