@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useJobStore } from "@/lib/store";
 import { Job } from "@/lib/types";
@@ -13,8 +13,80 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, Eye, Globe, Archive, Plus } from "lucide-react";
+import { Pencil, Trash2, Globe, Archive, Plus, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
+// Lightweight JD parser — extracts title/description/requirements/preferred skills from raw text
+const parseJobDescription = (text: string, companyId: string, companyName: string): Job => {
+  const clean = text.replace(/\r/g, "").trim();
+  const lines = clean.split("\n").map((l) => l.trim()).filter(Boolean);
+
+  // Title: first non-empty line, or first line under "Title:" / "Position:" / "Role:"
+  let title = lines[0]?.slice(0, 80) || "Untitled role";
+  const labeledTitle = clean.match(/^(?:title|position|role|job\s*title)\s*[:\-]\s*(.+)$/im);
+  if (labeledTitle) title = labeledTitle[1].trim().slice(0, 80);
+
+  // Section split helpers
+  const sectionRegex = (names: string[]) =>
+    new RegExp(
+      `(?:^|\\n)\\s*(?:${names.join("|")})\\s*[:\\-]?\\s*\\n([\\s\\S]*?)(?=\\n\\s*(?:requirements?|qualifications?|responsibilities|about|description|preferred|nice\\s*to\\s*have|skills?|benefits?|what\\s*we\\s*offer|location|salary|compensation|experience)\\s*[:\\-]?\\s*\\n|$)`,
+      "i"
+    );
+
+  const grabBullets = (block: string | undefined) => {
+    if (!block) return [];
+    return block
+      .split("\n")
+      .map((l) => l.replace(/^[-•*·\u2022]\s*/, "").replace(/^\d+[.)]\s*/, "").trim())
+      .filter((l) => l.length > 2 && l.length < 240)
+      .slice(0, 12);
+  };
+
+  const reqBlock = clean.match(sectionRegex(["requirements?", "qualifications?", "must\\s*have", "what\\s*you'?ll\\s*need"]));
+  const prefBlock = clean.match(sectionRegex(["preferred", "nice\\s*to\\s*have", "bonus", "good\\s*to\\s*have"]));
+  const descBlock = clean.match(sectionRegex(["about\\s*the\\s*role", "description", "overview", "summary", "responsibilities"]));
+
+  const requirements = grabBullets(reqBlock?.[1]);
+  const preferredSkills = grabBullets(prefBlock?.[1]);
+  let description = (descBlock?.[1] || "").trim();
+  if (!description) {
+    // fall back to first 2-3 paragraphs after the title
+    description = lines.slice(1, 6).join(" ").slice(0, 600);
+  }
+
+  const lower = clean.toLowerCase();
+  const salaryMatch = clean.match(/\$[\d,]+\s*[kK]?\s*[-–to]+\s*\$?[\d,]+\s*[kK]?/);
+  const locMatch =
+    clean.match(/^location\s*[:\-]\s*(.+)$/im)?.[1]?.trim() ||
+    (lower.includes("remote") ? "Remote" : lower.includes("hybrid") ? "Hybrid" : "On-site");
+  const expMatch = clean.match(/(\d+\+?\s*(?:-\s*\d+)?\s*years?)/i)?.[1] || "Not specified";
+
+  return {
+    id: crypto.randomUUID(),
+    companyId,
+    companyName,
+    title,
+    description: description || `We're hiring a ${title}.`,
+    requirements: requirements.length ? requirements : ["Relevant experience for this role"],
+    preferredSkills,
+    experienceRequired: expMatch,
+    location: locMatch,
+    type: lower.includes("contract")
+      ? "contract"
+      : lower.includes("part-time") || lower.includes("part time")
+      ? "part-time"
+      : lower.includes("remote")
+      ? "remote"
+      : "full-time",
+    salary: salaryMatch ? salaryMatch[0] : undefined,
+    createdAt: new Date(),
+    status: "draft",
+    industryExperience: [],
+    softSkills: [],
+    culturalFit: [],
+  };
+};
 
 const statusColors: Record<string, string> = {
   draft: "bg-secondary text-secondary-foreground",
