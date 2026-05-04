@@ -8,14 +8,24 @@ import { History, Link as LinkIcon, FileText, ExternalLink, Copy } from "lucide-
 import { toast } from "sonner";
 import { Job } from "@/lib/types";
 import JobPreviewDialog from "./JobPreviewDialog";
+import { useNavigate } from "react-router-dom";
 
 const ExportHistoryPanel = () => {
   const { user } = useAuth();
-  const { exportHistory } = useJobStore();
+  const { exportHistory, jobs, addJob } = useJobStore();
   const [open, setOpen] = useState(false);
   const [previewJob, setPreviewJob] = useState<Job | null>(null);
+  const navigate = useNavigate();
 
   const myHistory = exportHistory.filter((e) => e.companyId === user?.id);
+
+  const handleEdit = (snapshot: Job) => {
+    if (!jobs.find((j) => j.id === snapshot.id)) {
+      addJob({ ...snapshot, status: "draft" });
+    }
+    setOpen(false);
+    navigate(`/jobs?edit=${snapshot.id}`);
+  };
 
   const copy = async (url: string) => {
     try {
@@ -89,7 +99,13 @@ const ExportHistoryPanel = () => {
           )}
         </SheetContent>
       </Sheet>
-      <JobPreviewDialog open={!!previewJob} onOpenChange={(o) => !o && setPreviewJob(null)} job={previewJob} />
+      <JobPreviewDialog
+        open={!!previewJob}
+        onOpenChange={(o) => !o && setPreviewJob(null)}
+        job={previewJob}
+        showPublishAndEdit
+        onEdit={handleEdit}
+      />
     </>
   );
 };

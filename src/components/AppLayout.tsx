@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NavLink } from "react-router-dom";
+import NotificationsBell from "@/components/NotificationsBell";
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuth();
@@ -19,16 +20,16 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
         { to: "/dashboard", label: "Chat", icon: MessageSquare },
         { to: "/jobs", label: "Jobs", icon: Briefcase },
         { to: "/applicants", label: "Applicants", icon: User },
-        { to: "/company-profile", label: "Company", icon: Building2 },
         { to: "/interviews", label: "Interviews", icon: CalendarCheck },
+        { to: "/company-profile", label: "Company", icon: Building2 },
       ]
     : [
         { to: "/chat", label: "AI Chat", icon: MessageSquare },
         { to: "/dashboard", label: "Jobs", icon: Briefcase },
         { to: "/my-applications", label: "Applications", icon: FileText },
         { to: "/companies", label: "Companies", icon: Building2 },
-        { to: "/profile", label: "Profile", icon: User },
         { to: "/interviews", label: "Interviews", icon: CalendarCheck },
+        { to: "/profile", label: "Profile", icon: User },
       ];
 
   const Logo = (
@@ -84,6 +85,9 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
                   <div className="text-xs text-muted-foreground truncate">
                     {user.name} {user.company && `· ${user.company}`}
                   </div>
+                  <div onClick={() => setOpen(false)}>
+                    <NotificationsBell compact />
+                  </div>
                   <Button variant="outline" size="sm" className="w-full" onClick={() => { setOpen(false); logout(); }}>
                     <LogOut className="h-4 w-4 mr-2" /> Log out
                   </Button>
@@ -127,6 +131,9 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
+          <div className="hidden sm:inline-flex">
+            <NotificationsBell />
+          </div>
           <Button variant="ghost" size="sm" onClick={logout} className="hidden sm:inline-flex">
             <LogOut className="h-4 w-4" />
           </Button>

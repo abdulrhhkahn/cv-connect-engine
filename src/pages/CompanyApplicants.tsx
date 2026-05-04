@@ -17,7 +17,18 @@ const statusIcons: Record<string, typeof Clock> = {
 
 const CompanyApplicants = () => {
   const { user } = useAuth();
-  const { jobs, applications, updateApplication, profiles } = useJobStore();
+  const { jobs, applications, updateApplication, profiles, addNotification } = useJobStore();
+  const notifyStatus = (app: Application, status: "shortlisted" | "rejected") => {
+    updateApplication(app.id, { status });
+    const job = jobs.find((j) => j.id === app.jobId);
+    addNotification({
+      userId: app.candidateId,
+      title: status === "shortlisted" ? "You've been shortlisted" : "Application update",
+      message: `${job?.companyName || "A company"} ${status === "shortlisted" ? "shortlisted you" : "updated your application"} for "${job?.title || "a role"}".`,
+      type: "application",
+      link: "/my-applications",
+    });
+  };
   const [selectedProfile, setSelectedProfile] = useState<CandidateProfile | null>(null);
   const [scheduleApp, setScheduleApp] = useState<Application | null>(null);
 
@@ -74,10 +85,10 @@ const CompanyApplicants = () => {
                     </p>
                   </div>
                   <div className="flex flex-col items-center gap-1 shrink-0">
-                    <Button size="sm" variant={app.status === "shortlisted" ? "default" : "ghost"} onClick={() => updateApplication(app.id, { status: "shortlisted" })} title="Shortlist">
+                    <Button size="sm" variant={app.status === "shortlisted" ? "default" : "ghost"} onClick={() => notifyStatus(app, "shortlisted")} title="Shortlist">
                       <CheckCircle2 className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="ghost" className={app.status === "rejected" ? "text-destructive" : ""} onClick={() => updateApplication(app.id, { status: "rejected" })} title="Reject">
+                    <Button size="sm" variant="ghost" className={app.status === "rejected" ? "text-destructive" : ""} onClick={() => notifyStatus(app, "rejected")} title="Reject">
                       <XCircle className="h-4 w-4" />
                     </Button>
                     {profile && (

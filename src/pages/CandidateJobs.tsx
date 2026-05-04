@@ -19,7 +19,7 @@ import { WORLD_LOCATIONS, INDUSTRIES } from "@/lib/reference-data";
 
 const CandidateJobs = () => {
   const { user } = useAuth();
-  const { jobs, applications, addApplication, getProfile, companyProfiles, toggleFollow } = useJobStore();
+  const { jobs, applications, addApplication, getProfile, companyProfiles, toggleFollow, addNotification } = useJobStore();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
@@ -166,6 +166,13 @@ const CandidateJobs = () => {
       missingSkills: [...match.softSkillGaps, ...match.industryGaps],
     };
     addApplication(app);
+    addNotification({
+      userId: selectedJob.companyId,
+      title: "New application",
+      message: `${user.name} applied for "${selectedJob.title}".`,
+      type: "application",
+      link: "/applicants",
+    });
     toast.success("Application submitted!");
     setSelectedJob(null);
   };

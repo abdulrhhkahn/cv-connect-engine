@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Job } from "@/lib/types";
-import { Download, Link as LinkIcon, Printer, Share2 } from "lucide-react";
+import { Link as LinkIcon, Pencil, Printer, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { useJobStore } from "@/lib/store";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +11,10 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   job: Job | null;
+  /** When true, show Publish + Edit actions (used in history re-preview). */
+  showPublishAndEdit?: boolean;
+  onEdit?: (job: Job) => void;
+  onPublished?: (job: Job) => void;
 }
 
 const buildShareablePayload = (job: Job) => {
@@ -20,9 +24,9 @@ const buildShareablePayload = (job: Job) => {
   return `${window.location.origin}/job-preview#${b64}`;
 };
 
-const JobPreviewDialog = ({ open, onOpenChange, job }: Props) => {
+const JobPreviewDialog = ({ open, onOpenChange, job, showPublishAndEdit, onEdit, onPublished }: Props) => {
   const { user } = useAuth();
-  const { addExportHistory } = useJobStore();
+  const { addExportHistory, jobs, addJob, updateJob } = useJobStore();
   if (!job) return null;
 
   const recordExport = (type: "share-link" | "pdf", shareUrl: string) => {
@@ -132,11 +136,40 @@ ${job.culturalFit?.length ? `<h2>Cultural Fit</h2><div class="badges">${job.cult
           )}
         </article>
 
-        <DialogFooter className="gap-2 sm:gap-2">
+        <DialogFooter className="gap-2 sm:gap-2 flex-wrap">
+          {showPublishAndEdit && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (onEdit) onEdit(job);
+                  onOpenChange(false);
+                }}
+              >
+                <Pencil className="h-4 w-4 mr-2" /> Edit
+              </Button>
+              <Button
+                onClick={() => {
+                  const existing = jobs.find((j) => j.id === job.id);
+                  const published: Job = { ...job, status: "active" };
+                  if (existing) {
+                    updateJob(job.id, { status: "active" });
+                  } else {
+                    addJob(published);
+                  }
+                  toast.success("Job published");
+                  onPublished?.(published);
+                  onOpenChange(false);
+                }}
+              >
+                <Globe className="h-4 w-4 mr-2" /> Publish
+              </Button>
+            </>
+          )}
           <Button variant="outline" onClick={handleCopyLink}>
             <LinkIcon className="h-4 w-4 mr-2" /> Copy share link
           </Button>
-          <Button onClick={handlePrintPdf}>
+          <Button onClick={handlePrintPdf} variant={showPublishAndEdit ? "outline" : "default"}>
             <Printer className="h-4 w-4 mr-2" /> Export PDF
           </Button>
         </DialogFooter>

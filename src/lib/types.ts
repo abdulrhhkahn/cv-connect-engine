@@ -101,7 +101,23 @@ export interface Interview {
   mode: "video" | "phone" | "onsite";
   location?: string; // meeting link / address / phone number
   notes?: string;
-  status: "scheduled" | "completed" | "cancelled";
+  status: "scheduled" | "completed" | "cancelled" | "pending_confirmation" | "reschedule_proposed";
+  candidateConfirmed?: boolean;
+  proposedBy?: "company" | "candidate";
+  proposedAt?: Date;
+  proposedDurationMins?: number;
+  proposedNote?: string;
+}
+
+export interface Notification {
+  id: string;
+  userId: string; // recipient
+  title: string;
+  message: string;
+  type: "interview" | "application" | "job" | "follow" | "system";
+  link?: string;
+  read: boolean;
+  createdAt: Date;
 }
 
 export interface ExportHistoryEntry {
