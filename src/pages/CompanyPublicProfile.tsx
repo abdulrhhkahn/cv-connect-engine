@@ -1,19 +1,54 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useJobStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building2, MapPin, Globe, Phone, Mail, Users, Briefcase, Heart } from "lucide-react";
+import { Building2, MapPin, Globe, Phone, Mail, Users, Briefcase, Heart, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Job } from "@/lib/types";
+import { toast } from "sonner";
 
 const CompanyPublicProfile = () => {
   const { companyId } = useParams<{ companyId: string }>();
   const { user } = useAuth();
-  const { companyProfiles, jobs, toggleFollow } = useJobStore();
+  const { companyProfiles, jobs, applications, toggleFollow, addApplication, addNotification } = useJobStore();
+  const [openJob, setOpenJob] = useState<Job | null>(null);
 
   const profile = companyProfiles.find((p) => p.userId === companyId);
   const companyJobs = jobs.filter((j) => j.companyId === companyId && j.status === "active");
   const isFollowing = user && profile?.followers?.includes(user.id);
   const isCandidate = user?.role === "candidate";
+
+  const hasApplied = (jobId: string) =>
+    !!user && applications.some((a) => a.jobId === jobId && a.candidateId === user.id);
+
+  const handleApply = (job: Job) => {
+    if (!user || !isCandidate) return;
+    if (hasApplied(job.id)) {
+      toast.message("You've already applied to this role");
+      return;
+    }
+    addApplication({
+      id: crypto.randomUUID(),
+      jobId: job.id,
+      candidateId: user.id,
+      candidateName: user.name,
+      status: "pending",
+      matchScore: 70,
+      matchDetails: "Application submitted from company profile.",
+      appliedAt: new Date(),
+    });
+    addNotification({
+      userId: job.companyId,
+      title: "New application",
+      message: `${user.name} applied for "${job.title}".`,
+      type: "application",
+      link: "/applicants",
+    });
+    toast.success(`Applied to ${job.title}`);
+    setOpenJob(null);
+  };
 
   if (!profile) {
     return (
