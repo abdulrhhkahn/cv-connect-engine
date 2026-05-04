@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useJobStore } from "@/lib/store";
 import { Job } from "@/lib/types";
@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Pencil, Trash2, Globe, Archive, Plus, Upload } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 // Lightweight JD parser — extracts title/description/requirements/preferred skills from raw text
@@ -98,6 +98,7 @@ const CompanyJobs = () => {
   const { user } = useAuth();
   const { jobs, addJob, updateJob, deleteJob } = useJobStore();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [editForm, setEditForm] = useState<Partial<Job>>({});
   const fileRef = useRef<HTMLInputElement>(null);
