@@ -85,6 +85,9 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
                   <div className="text-xs text-muted-foreground truncate">
                     {user.name} {user.company && `· ${user.company}`}
                   </div>
+                  <div onClick={() => setOpen(false)}>
+                    <NotificationsBell compact />
+                  </div>
                   <Button variant="outline" size="sm" className="w-full" onClick={() => { setOpen(false); logout(); }}>
                     <LogOut className="h-4 w-4 mr-2" /> Log out
                   </Button>
@@ -128,6 +131,9 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
+          <div className="hidden sm:inline-flex">
+            <NotificationsBell />
+          </div>
           <Button variant="ghost" size="sm" onClick={logout} className="hidden sm:inline-flex">
             <LogOut className="h-4 w-4" />
           </Button>
