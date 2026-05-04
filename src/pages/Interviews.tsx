@@ -1,16 +1,31 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useJobStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Video, Phone, MapPin, Building2, User as UserIcon, XCircle, CheckCircle2 } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Video,
+  Phone,
+  MapPin,
+  Building2,
+  User as UserIcon,
+  XCircle,
+  CheckCircle2,
+  CalendarClock,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "sonner";
+import RescheduleInterviewDialog from "@/components/RescheduleInterviewDialog";
+import type { Interview } from "@/lib/types";
 
 const modeIcon = { video: Video, phone: Phone, onsite: MapPin } as const;
 
 const Interviews = () => {
   const { user } = useAuth();
-  const { interviews, cancelInterview, updateInterview } = useJobStore();
+  const { interviews, cancelInterview, updateInterview, addNotification } = useJobStore();
+  const [rescheduling, setRescheduling] = useState<Interview | null>(null);
 
   const isCompany = user?.role === "company";
 
@@ -21,9 +36,10 @@ const Interviews = () => {
       .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
   }, [interviews, user, isCompany]);
 
-  const upcoming = myInterviews.filter(
-    (i) => i.status === "scheduled" && new Date(i.scheduledAt).getTime() >= Date.now() - 60 * 60 * 1000
-  );
+  const isLive = (i: Interview) =>
+    ["scheduled", "pending_confirmation", "reschedule_proposed"].includes(i.status) &&
+    new Date(i.scheduledAt).getTime() >= Date.now() - 60 * 60 * 1000;
+  const upcoming = myInterviews.filter(isLive);
   const past = myInterviews.filter((i) => !upcoming.includes(i));
 
   const formatWhen = (d: Date) =>
@@ -34,6 +50,60 @@ const Interviews = () => {
       hour: "numeric",
       minute: "2-digit",
     });
+
+  const confirm = (iv: Interview) => {
+    updateInterview(iv.id, { status: "scheduled", candidateConfirmed: true });
+    addNotification({
+      userId: iv.companyId,
+      title: "Interview confirmed",
+      message: `${iv.candidateName} confirmed the interview for "${iv.jobTitle}".`,
+      type: "interview",
+      link: "/interviews",
+    });
+    toast.success("Interview confirmed");
+  };
+
+  const acceptProposal = (iv: Interview) => {
+    if (!iv.proposedAt) return;
+    updateInterview(iv.id, {
+      status: "scheduled",
+      scheduledAt: iv.proposedAt,
+      durationMins: iv.proposedDurationMins || iv.durationMins,
+      candidateConfirmed: !isCompany ? true : iv.candidateConfirmed,
+      proposedAt: undefined,
+      proposedBy: undefined,
+      proposedDurationMins: undefined,
+      proposedNote: undefined,
+    });
+    const recipientId = isCompany ? iv.candidateId : iv.companyId;
+    addNotification({
+      userId: recipientId,
+      title: "New time accepted",
+      message: `Interview for "${iv.jobTitle}" is now ${new Date(iv.proposedAt).toLocaleString()}.`,
+      type: "interview",
+      link: "/interviews",
+    });
+    toast.success("New time confirmed");
+  };
+
+  const declineProposal = (iv: Interview) => {
+    updateInterview(iv.id, {
+      status: iv.candidateConfirmed ? "scheduled" : "pending_confirmation",
+      proposedAt: undefined,
+      proposedBy: undefined,
+      proposedDurationMins: undefined,
+      proposedNote: undefined,
+    });
+    const recipientId = isCompany ? iv.candidateId : iv.companyId;
+    addNotification({
+      userId: recipientId,
+      title: "Proposed time declined",
+      message: `The new time for "${iv.jobTitle}" was declined.`,
+      type: "interview",
+      link: "/interviews",
+    });
+    toast.message("Proposal declined");
+  };
 
   const Section = ({ title, items, isPast = false }: { title: string; items: typeof myInterviews; isPast?: boolean }) => (
     <div>
@@ -46,6 +116,8 @@ const Interviews = () => {
         <div className="space-y-3">
           {items.map((iv) => {
             const Icon = modeIcon[iv.mode];
+            const proposed = iv.status === "reshedule_proposed" || iv.status === "reschedule_proposed";
+            const youProposed = proposed && ((isCompany && iv.proposedBy === "company") || (!isCompany && iv.proposedBy === "candidate"));
             return (
               <div key={iv.id} className="glass-card rounded-xl p-4 animate-fade-in">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -55,6 +127,17 @@ const Interviews = () => {
                       <Badge variant="secondary" className="text-xs capitalize">
                         <Icon className="h-3 w-3 mr-1" /> {iv.mode}
                       </Badge>
+                      {iv.status === "pending_confirmation" && (
+                        <Badge variant="secondary" className="match-badge-medium text-xs">Awaiting confirmation</Badge>
+                      )}
+                      {iv.status === "scheduled" && (
+                        <Badge variant="secondary" className="match-badge-high text-xs">Confirmed</Badge>
+                      )}
+                      {proposed && (
+                        <Badge variant="secondary" className="match-badge-medium text-xs">
+                          New time proposed
+                        </Badge>
+                      )}
                       {iv.status === "cancelled" && (
                         <Badge variant="secondary" className="match-badge-low text-xs">Cancelled</Badge>
                       )}
@@ -74,11 +157,53 @@ const Interviews = () => {
                     {iv.notes && (
                       <p className="text-xs text-muted-foreground bg-secondary/50 rounded-md p-2 mt-2">{iv.notes}</p>
                     )}
+                    {proposed && iv.proposedAt && (
+                      <div className="mt-2 rounded-md border border-primary/30 bg-accent/40 p-2.5 text-xs space-y-1">
+                        <p className="font-medium flex items-center gap-1.5">
+                          <CalendarClock className="h-3.5 w-3.5" /> Proposed: {formatWhen(iv.proposedAt)}
+                          {iv.proposedDurationMins ? ` · ${iv.proposedDurationMins} min` : ""}
+                        </p>
+                        {iv.proposedNote && <p className="text-muted-foreground">"{iv.proposedNote}"</p>}
+                        <p className="text-muted-foreground">
+                          {youProposed ? "Waiting for the other party to confirm." : "Accept, decline, or counter-propose."}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
-                  {iv.status === "scheduled" && !isPast && (
-                    <div className="flex gap-1 shrink-0">
-                      {isCompany && (
+                  {!isPast && iv.status !== "cancelled" && iv.status !== "completed" && (
+                    <div className="flex flex-wrap gap-1 shrink-0 justify-end">
+                      {/* Candidate confirm initial invite */}
+                      {!isCompany && iv.status === "pending_confirmation" && (
+                        <Button size="sm" onClick={() => confirm(iv)}>
+                          <CheckCircle2 className="h-4 w-4 mr-1" /> Confirm
+                        </Button>
+                      )}
+
+                      {/* Proposal actions for the receiving party */}
+                      {proposed && !youProposed && (
+                        <>
+                          <Button size="sm" onClick={() => acceptProposal(iv)}>
+                            <CheckCircle2 className="h-4 w-4 mr-1" /> Accept
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => declineProposal(iv)}>
+                            Decline
+                          </Button>
+                        </>
+                      )}
+
+                      {/* Reschedule */}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setRescheduling(iv)}
+                        title="Propose new time"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+
+                      {/* Company can mark complete on confirmed sessions */}
+                      {isCompany && iv.status === "scheduled" && (
                         <Button
                           size="sm"
                           variant="ghost"
@@ -91,12 +216,21 @@ const Interviews = () => {
                           <CheckCircle2 className="h-4 w-4" />
                         </Button>
                       )}
+
                       <Button
                         size="sm"
                         variant="ghost"
                         className="text-destructive"
                         onClick={() => {
                           cancelInterview(iv.id);
+                          const recipientId = isCompany ? iv.candidateId : iv.companyId;
+                          addNotification({
+                            userId: recipientId,
+                            title: "Interview cancelled",
+                            message: `The interview for "${iv.jobTitle}" was cancelled.`,
+                            type: "interview",
+                            link: "/interviews",
+                          });
                           toast.success("Interview cancelled");
                         }}
                         title="Cancel interview"
@@ -121,11 +255,17 @@ const Interviews = () => {
         <p className="text-sm text-muted-foreground">
           {isCompany
             ? "Schedule and track interviews with candidates from the Applicants page."
-            : "Your upcoming interviews with hiring teams."}
+            : "Confirm invitations and propose new times when needed."}
         </p>
       </div>
       <Section title="Upcoming" items={upcoming} />
       <Section title="Past" items={past} isPast />
+
+      <RescheduleInterviewDialog
+        open={!!rescheduling}
+        onOpenChange={(o) => !o && setRescheduling(null)}
+        interview={rescheduling}
+      />
     </div>
   );
 };
