@@ -19,16 +19,16 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
         { to: "/dashboard", label: "Chat", icon: MessageSquare },
         { to: "/jobs", label: "Jobs", icon: Briefcase },
         { to: "/applicants", label: "Applicants", icon: User },
-        { to: "/company-profile", label: "Company", icon: Building2 },
         { to: "/interviews", label: "Interviews", icon: CalendarCheck },
+        { to: "/company-profile", label: "Company", icon: Building2 },
       ]
     : [
         { to: "/chat", label: "AI Chat", icon: MessageSquare },
         { to: "/dashboard", label: "Jobs", icon: Briefcase },
         { to: "/my-applications", label: "Applications", icon: FileText },
         { to: "/companies", label: "Companies", icon: Building2 },
-        { to: "/profile", label: "Profile", icon: User },
         { to: "/interviews", label: "Interviews", icon: CalendarCheck },
+        { to: "/profile", label: "Profile", icon: User },
       ];
 
   const Logo = (
