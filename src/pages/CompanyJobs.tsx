@@ -96,10 +96,11 @@ const statusColors: Record<string, string> = {
 
 const CompanyJobs = () => {
   const { user } = useAuth();
-  const { jobs, updateJob, deleteJob } = useJobStore();
+  const { jobs, addJob, updateJob, deleteJob } = useJobStore();
   const navigate = useNavigate();
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [editForm, setEditForm] = useState<Partial<Job>>({});
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const myJobs = jobs.filter((j) => j.companyId === user?.id);
 
@@ -125,17 +126,56 @@ const CompanyJobs = () => {
     setEditingJob(null);
   };
 
+  const handleUpload = async (file: File) => {
+    if (!user) return;
+    const isText = /\.(txt|md|markdown)$/i.test(file.name) || file.type.startsWith("text/");
+    if (!isText) {
+      toast.error("Please upload a .txt or .md file. For PDF/DOCX, paste the text in the editor.");
+      return;
+    }
+    try {
+      const text = await file.text();
+      if (!text.trim()) {
+        toast.error("File is empty");
+        return;
+      }
+      const job = parseJobDescription(text, user.id, user.company || user.name);
+      addJob(job);
+      openEdit(job);
+      toast.success("Job description imported — review and publish");
+    } catch {
+      toast.error("Could not read file");
+    }
+  };
+
   return (
     <div className="p-4 lg:p-8 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-2 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Job Postings</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage your open positions</p>
         </div>
-        <Button onClick={() => navigate("/dashboard")}>
-          <Plus className="h-4 w-4 mr-1" />
-          New via Chat
-        </Button>
+        <div className="flex gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".txt,.md,.markdown,text/plain"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleUpload(f);
+              e.target.value = "";
+            }}
+          />
+          <Button variant="outline" onClick={() => fileRef.current?.click()}>
+            <Upload className="h-4 w-4 mr-1" />
+            Upload JD
+          </Button>
+          <Button onClick={() => navigate("/dashboard")}>
+            <Plus className="h-4 w-4 mr-1" />
+            New via Chat
+          </Button>
+        </div>
       </div>
 
       {myJobs.length === 0 ? (
