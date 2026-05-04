@@ -8,6 +8,7 @@ import { History, Link as LinkIcon, FileText, ExternalLink, Copy } from "lucide-
 import { toast } from "sonner";
 import { Job } from "@/lib/types";
 import JobPreviewDialog from "./JobPreviewDialog";
+import { useNavigate } from "react-router-dom";
 
 const ExportHistoryPanel = () => {
   const { user } = useAuth();
