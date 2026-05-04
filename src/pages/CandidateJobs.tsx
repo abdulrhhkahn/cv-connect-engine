@@ -166,6 +166,13 @@ const CandidateJobs = () => {
       missingSkills: [...match.softSkillGaps, ...match.industryGaps],
     };
     addApplication(app);
+    addNotification({
+      userId: selectedJob.companyId,
+      title: "New application",
+      message: `${user.name} applied for "${selectedJob.title}".`,
+      type: "application",
+      link: "/applicants",
+    });
     toast.success("Application submitted!");
     setSelectedJob(null);
   };
