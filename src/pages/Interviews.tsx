@@ -116,7 +116,7 @@ const Interviews = () => {
         <div className="space-y-3">
           {items.map((iv) => {
             const Icon = modeIcon[iv.mode];
-            const proposed = iv.status === "reshedule_proposed" || iv.status === "reschedule_proposed";
+            const proposed = iv.status === "reschedule_proposed";
             const youProposed = proposed && ((isCompany && iv.proposedBy === "company") || (!isCompany && iv.proposedBy === "candidate"));
             return (
               <div key={iv.id} className="glass-card rounded-xl p-4 animate-fade-in">
