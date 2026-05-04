@@ -256,12 +256,20 @@ const CompanyChat = () => {
     );
   };
 
-  const saveDraft = (msgId: string) => {
+  const publishJob = (msgId: string) => {
     const msg = messages.find((m) => m.id === msgId);
     if (!msg?.draftJob) return;
-    addJob(msg.draftJob);
-    setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, saved: true } : m)));
-    toast.success("Draft saved to Jobs");
+    const published: Job = { ...msg.draftJob, status: "active" };
+    addJob(published);
+    setMessages((prev) =>
+      prev.map((m) => (m.id === msgId ? { ...m, saved: true, draftJob: published } : m))
+    );
+    toast.success("Job published");
+  };
+
+  const cancelDraft = (msgId: string) => {
+    setMessages((prev) => prev.filter((m) => m.id !== msgId));
+    toast.message("Draft discarded");
   };
 
   const handleSend = async () => {
@@ -284,7 +292,7 @@ const CompanyChat = () => {
     const response: DraftMessage = {
       id: crypto.randomUUID(),
       role: "assistant",
-      content: `I've drafted a **${job.title}** posting. Review and edit any field below — when it looks right, click **Save Draft** to add it to your Jobs.`,
+      content: `I've drafted a **${job.title}** posting. Review and edit any field below — when it looks right, click **Publish Job** to make it live.`,
       timestamp: new Date(),
       draftJob: job,
       suggestions,
@@ -430,10 +438,15 @@ const CompanyChat = () => {
                   />
 
                   <div className="flex flex-wrap gap-2 pt-1">
-                    <Button size="sm" onClick={() => saveDraft(msg.id)} disabled={msg.saved}>
+                    <Button size="sm" onClick={() => publishJob(msg.id)} disabled={msg.saved}>
                       <Save className="h-3.5 w-3.5 mr-1" />
-                      {msg.saved ? "Saved" : "Save Draft"}
+                      {msg.saved ? "Published" : "Publish Job"}
                     </Button>
+                    {!msg.saved && (
+                      <Button size="sm" variant="ghost" onClick={() => cancelDraft(msg.id)}>
+                        Cancel
+                      </Button>
+                    )}
                     <Button size="sm" variant="outline" onClick={() => setPreviewJob(msg.draftJob!)}>
                       <FileDown className="h-3.5 w-3.5 mr-1" /> Export / Preview
                     </Button>
