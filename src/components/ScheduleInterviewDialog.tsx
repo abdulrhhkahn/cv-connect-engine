@@ -129,7 +129,7 @@ const ScheduleInterviewDialog = ({ open, onOpenChange, application, job }: Props
         )}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSchedule}>Schedule</Button>
+          <Button onClick={handleSchedule}>Send invitation</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
