@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Job } from "@/lib/types";
-import { Download, Link as LinkIcon, Printer, Share2 } from "lucide-react";
+import { Link as LinkIcon, Pencil, Printer, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { useJobStore } from "@/lib/store";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +11,10 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   job: Job | null;
+  /** When true, show Publish + Edit actions (used in history re-preview). */
+  showPublishAndEdit?: boolean;
+  onEdit?: (job: Job) => void;
+  onPublished?: (job: Job) => void;
 }
 
 const buildShareablePayload = (job: Job) => {
@@ -20,9 +24,9 @@ const buildShareablePayload = (job: Job) => {
   return `${window.location.origin}/job-preview#${b64}`;
 };
 
-const JobPreviewDialog = ({ open, onOpenChange, job }: Props) => {
+const JobPreviewDialog = ({ open, onOpenChange, job, showPublishAndEdit, onEdit, onPublished }: Props) => {
   const { user } = useAuth();
-  const { addExportHistory } = useJobStore();
+  const { addExportHistory, jobs, addJob, updateJob } = useJobStore();
   if (!job) return null;
 
   const recordExport = (type: "share-link" | "pdf", shareUrl: string) => {
