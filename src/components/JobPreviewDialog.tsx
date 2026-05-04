@@ -136,11 +136,40 @@ ${job.culturalFit?.length ? `<h2>Cultural Fit</h2><div class="badges">${job.cult
           )}
         </article>
 
-        <DialogFooter className="gap-2 sm:gap-2">
+        <DialogFooter className="gap-2 sm:gap-2 flex-wrap">
+          {showPublishAndEdit && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (onEdit) onEdit(job);
+                  onOpenChange(false);
+                }}
+              >
+                <Pencil className="h-4 w-4 mr-2" /> Edit
+              </Button>
+              <Button
+                onClick={() => {
+                  const existing = jobs.find((j) => j.id === job.id);
+                  const published: Job = { ...job, status: "active" };
+                  if (existing) {
+                    updateJob(job.id, { status: "active" });
+                  } else {
+                    addJob(published);
+                  }
+                  toast.success("Job published");
+                  onPublished?.(published);
+                  onOpenChange(false);
+                }}
+              >
+                <Globe className="h-4 w-4 mr-2" /> Publish
+              </Button>
+            </>
+          )}
           <Button variant="outline" onClick={handleCopyLink}>
             <LinkIcon className="h-4 w-4 mr-2" /> Copy share link
           </Button>
-          <Button onClick={handlePrintPdf}>
+          <Button onClick={handlePrintPdf} variant={showPublishAndEdit ? "outline" : "default"}>
             <Printer className="h-4 w-4 mr-2" /> Export PDF
           </Button>
         </DialogFooter>
