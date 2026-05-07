@@ -278,6 +278,11 @@ const Interviews = () => {
         onOpenChange={(o) => !o && setRescheduling(null)}
         interview={rescheduling}
       />
+      <CancelInterviewDialog
+        open={!!cancelling}
+        onOpenChange={(o) => !o && setCancelling(null)}
+        interview={cancelling}
+      />
     </div>
   );
 };
