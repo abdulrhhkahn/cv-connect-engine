@@ -176,7 +176,7 @@ const CompanyJobs = () => {
           <input
             ref={fileRef}
             type="file"
-            accept=".txt,.md,.markdown,text/plain"
+            accept=".txt,.md,.markdown,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
