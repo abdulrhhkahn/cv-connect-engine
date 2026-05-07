@@ -27,8 +27,9 @@ const modeIcon = { video: Video, phone: Phone, onsite: MapPin } as const;
 
 const Interviews = () => {
   const { user } = useAuth();
-  const { interviews, cancelInterview, updateInterview, addNotification } = useJobStore();
+  const { interviews, updateInterview, addNotification } = useJobStore();
   const [rescheduling, setRescheduling] = useState<Interview | null>(null);
+  const [cancelling, setCancelling] = useState<Interview | null>(null);
 
   const isCompany = user?.role === "company";
 
