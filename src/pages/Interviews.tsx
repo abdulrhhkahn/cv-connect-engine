@@ -229,22 +229,22 @@ const Interviews = () => {
                         </Button>
                       )}
 
+                      {iv.status === "scheduled" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => downloadInterviewICS(iv)}
+                          title="Add to calendar (.ics)"
+                        >
+                          <CalendarPlus className="h-4 w-4" />
+                        </Button>
+                      )}
+
                       <Button
                         size="sm"
                         variant="ghost"
                         className="text-destructive"
-                        onClick={() => {
-                          cancelInterview(iv.id);
-                          const recipientId = isCompany ? iv.candidateId : iv.companyId;
-                          addNotification({
-                            userId: recipientId,
-                            title: "Interview cancelled",
-                            message: `The interview for "${iv.jobTitle}" was cancelled.`,
-                            type: "interview",
-                            link: "/interviews",
-                          });
-                          toast.success("Interview cancelled");
-                        }}
+                        onClick={() => setCancelling(iv)}
                         title="Cancel interview"
                       >
                         <XCircle className="h-4 w-4" />
