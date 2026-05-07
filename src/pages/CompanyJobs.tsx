@@ -16,6 +16,7 @@ import {
 import { Pencil, Trash2, Globe, Archive, Plus, Upload } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { extractTextFromFile } from "@/lib/document-parser";
 
 // Lightweight JD parser — extracts title/description/requirements/preferred skills from raw text
 const parseJobDescription = (text: string, companyId: string, companyName: string): Job => {
