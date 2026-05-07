@@ -89,7 +89,13 @@ const Interviews = () => {
       type: "interview",
       link: "/interviews",
     });
-    toast.success("New time confirmed");
+    downloadInterviewICS({
+      ...iv,
+      scheduledAt: iv.proposedAt,
+      durationMins: iv.proposedDurationMins || iv.durationMins,
+      status: "scheduled",
+    });
+    toast.success("New time confirmed — calendar invite downloaded");
   };
 
   const declineProposal = (iv: Interview) => {
