@@ -15,17 +15,21 @@ import {
   CheckCircle2,
   CalendarClock,
   RefreshCw,
+  CalendarPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import RescheduleInterviewDialog from "@/components/RescheduleInterviewDialog";
+import CancelInterviewDialog from "@/components/CancelInterviewDialog";
 import type { Interview } from "@/lib/types";
+import { downloadInterviewICS } from "@/lib/ics";
 
 const modeIcon = { video: Video, phone: Phone, onsite: MapPin } as const;
 
 const Interviews = () => {
   const { user } = useAuth();
-  const { interviews, cancelInterview, updateInterview, addNotification } = useJobStore();
+  const { interviews, updateInterview, addNotification } = useJobStore();
   const [rescheduling, setRescheduling] = useState<Interview | null>(null);
+  const [cancelling, setCancelling] = useState<Interview | null>(null);
 
   const isCompany = user?.role === "company";
 
@@ -52,6 +56,7 @@ const Interviews = () => {
     });
 
   const confirm = (iv: Interview) => {
+    const updated = { ...iv, status: "scheduled" as const, candidateConfirmed: true };
     updateInterview(iv.id, { status: "scheduled", candidateConfirmed: true });
     addNotification({
       userId: iv.companyId,
@@ -60,7 +65,8 @@ const Interviews = () => {
       type: "interview",
       link: "/interviews",
     });
-    toast.success("Interview confirmed");
+    downloadInterviewICS(updated);
+    toast.success("Interview confirmed — calendar invite downloaded");
   };
 
   const acceptProposal = (iv: Interview) => {
@@ -83,7 +89,13 @@ const Interviews = () => {
       type: "interview",
       link: "/interviews",
     });
-    toast.success("New time confirmed");
+    downloadInterviewICS({
+      ...iv,
+      scheduledAt: iv.proposedAt,
+      durationMins: iv.proposedDurationMins || iv.durationMins,
+      status: "scheduled",
+    });
+    toast.success("New time confirmed — calendar invite downloaded");
   };
 
   const declineProposal = (iv: Interview) => {
@@ -217,22 +229,22 @@ const Interviews = () => {
                         </Button>
                       )}
 
+                      {iv.status === "scheduled" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => downloadInterviewICS(iv)}
+                          title="Add to calendar (.ics)"
+                        >
+                          <CalendarPlus className="h-4 w-4" />
+                        </Button>
+                      )}
+
                       <Button
                         size="sm"
                         variant="ghost"
                         className="text-destructive"
-                        onClick={() => {
-                          cancelInterview(iv.id);
-                          const recipientId = isCompany ? iv.candidateId : iv.companyId;
-                          addNotification({
-                            userId: recipientId,
-                            title: "Interview cancelled",
-                            message: `The interview for "${iv.jobTitle}" was cancelled.`,
-                            type: "interview",
-                            link: "/interviews",
-                          });
-                          toast.success("Interview cancelled");
-                        }}
+                        onClick={() => setCancelling(iv)}
                         title="Cancel interview"
                       >
                         <XCircle className="h-4 w-4" />
@@ -265,6 +277,11 @@ const Interviews = () => {
         open={!!rescheduling}
         onOpenChange={(o) => !o && setRescheduling(null)}
         interview={rescheduling}
+      />
+      <CancelInterviewDialog
+        open={!!cancelling}
+        onOpenChange={(o) => !o && setCancelling(null)}
+        interview={cancelling}
       />
     </div>
   );

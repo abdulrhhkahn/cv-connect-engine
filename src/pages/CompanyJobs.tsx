@@ -16,6 +16,7 @@ import {
 import { Pencil, Trash2, Globe, Archive, Plus, Upload } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { extractTextFromFile } from "@/lib/document-parser";
 
 // Lightweight JD parser — extracts title/description/requirements/preferred skills from raw text
 const parseJobDescription = (text: string, companyId: string, companyName: string): Job => {
@@ -142,23 +143,25 @@ const CompanyJobs = () => {
 
   const handleUpload = async (file: File) => {
     if (!user) return;
-    const isText = /\.(txt|md|markdown)$/i.test(file.name) || file.type.startsWith("text/");
-    if (!isText) {
-      toast.error("Please upload a .txt or .md file. For PDF/DOCX, paste the text in the editor.");
+    const supported = /\.(txt|md|markdown|pdf|docx)$/i.test(file.name);
+    if (!supported) {
+      toast.error("Unsupported file. Use .txt, .md, .pdf or .docx");
       return;
     }
+    const t = toast.loading("Extracting job description…");
     try {
-      const text = await file.text();
+      const text = await extractTextFromFile(file);
       if (!text.trim()) {
-        toast.error("File is empty");
+        toast.error("No text could be extracted", { id: t });
         return;
       }
       const job = parseJobDescription(text, user.id, user.company || user.name);
       addJob(job);
       openEdit(job);
-      toast.success("Job description imported — review and publish");
-    } catch {
-      toast.error("Could not read file");
+      toast.success("Job description imported — review and publish", { id: t });
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not read file", { id: t });
     }
   };
 
@@ -173,7 +176,7 @@ const CompanyJobs = () => {
           <input
             ref={fileRef}
             type="file"
-            accept=".txt,.md,.markdown,text/plain"
+            accept=".txt,.md,.markdown,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
