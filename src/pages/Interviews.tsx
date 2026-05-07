@@ -56,6 +56,7 @@ const Interviews = () => {
     });
 
   const confirm = (iv: Interview) => {
+    const updated = { ...iv, status: "scheduled" as const, candidateConfirmed: true };
     updateInterview(iv.id, { status: "scheduled", candidateConfirmed: true });
     addNotification({
       userId: iv.companyId,
@@ -64,7 +65,8 @@ const Interviews = () => {
       type: "interview",
       link: "/interviews",
     });
-    toast.success("Interview confirmed");
+    downloadInterviewICS(updated);
+    toast.success("Interview confirmed — calendar invite downloaded");
   };
 
   const acceptProposal = (iv: Interview) => {
