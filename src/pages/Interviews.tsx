@@ -16,12 +16,13 @@ import {
   CalendarClock,
   RefreshCw,
   CalendarPlus,
+  Link as LinkIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import RescheduleInterviewDialog from "@/components/RescheduleInterviewDialog";
 import CancelInterviewDialog from "@/components/CancelInterviewDialog";
 import type { Interview } from "@/lib/types";
-import { downloadInterviewICS } from "@/lib/ics";
+import { downloadInterviewICS, buildInterviewICS } from "@/lib/ics";
 
 const modeIcon = { video: Video, phone: Phone, onsite: MapPin } as const;
 
@@ -169,6 +170,19 @@ const Interviews = () => {
                     {iv.notes && (
                       <p className="text-xs text-muted-foreground bg-secondary/50 rounded-md p-2 mt-2">{iv.notes}</p>
                     )}
+                    {iv.status === "cancelled" && (
+                      <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 p-2.5 text-xs space-y-0.5">
+                        <p className="font-medium text-destructive">
+                          Cancelled{iv.cancelledBy ? ` by ${iv.cancelledBy}` : ""}
+                          {iv.cancelledAt ? ` · ${new Date(iv.cancelledAt).toLocaleString()}` : ""}
+                        </p>
+                        {iv.cancellationReason ? (
+                          <p className="text-muted-foreground">Reason: "{iv.cancellationReason}"</p>
+                        ) : (
+                          <p className="text-muted-foreground">No reason provided.</p>
+                        )}
+                      </div>
+                    )}
                     {proposed && iv.proposedAt && (
                       <div className="mt-2 rounded-md border border-primary/30 bg-accent/40 p-2.5 text-xs space-y-1">
                         <p className="font-medium flex items-center gap-1.5">
@@ -230,14 +244,33 @@ const Interviews = () => {
                       )}
 
                       {iv.status === "scheduled" && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => downloadInterviewICS(iv)}
-                          title="Add to calendar (.ics)"
-                        >
-                          <CalendarPlus className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => downloadInterviewICS(iv)}
+                            title="Download calendar invite (.ics)"
+                          >
+                            <CalendarPlus className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={async () => {
+                              const ics = buildInterviewICS(iv);
+                              const link = `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
+                              try {
+                                await navigator.clipboard.writeText(link);
+                                toast.success("Calendar share link copied");
+                              } catch {
+                                toast.error("Couldn't copy link");
+                              }
+                            }}
+                            title="Copy calendar share link"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
 
                       <Button

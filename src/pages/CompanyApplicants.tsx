@@ -4,7 +4,7 @@ import { useJobStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle2, XCircle, Clock, Star, User, MapPin, Phone, Mail, Globe, Linkedin, Briefcase, GraduationCap, Building2, Users, Heart, CalendarPlus } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Star, User, MapPin, Phone, Mail, Globe, Linkedin, Briefcase, GraduationCap, Building2, Users, Heart, CalendarPlus, Download } from "lucide-react";
 import { CandidateProfile, Application } from "@/lib/types";
 import ScheduleInterviewDialog from "@/components/ScheduleInterviewDialog";
 
@@ -188,8 +188,32 @@ const CompanyApplicants = () => {
                 </div>
               )}
 
-              {selectedProfile.cvFileName && (
-                <p className="text-sm text-muted-foreground">📄 CV: {selectedProfile.cvFileName}</p>
+              {(selectedProfile.cvUrl || selectedProfile.cvFileName) && (
+                <div className="flex items-center justify-between gap-2 bg-secondary/50 rounded-lg px-3 py-2">
+                  <p className="text-sm text-muted-foreground truncate">
+                    📄 {selectedProfile.cvFileName || "Resume"}
+                  </p>
+                  {selectedProfile.cvUrl ? (
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                    >
+                      <a
+                        href={selectedProfile.cvUrl}
+                        download={selectedProfile.cvFileName || "resume"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Download className="h-4 w-4 mr-1" /> Download
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" disabled title="Resume file not available">
+                      <Download className="h-4 w-4 mr-1" /> Download
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           </DialogContent>

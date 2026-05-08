@@ -306,7 +306,7 @@ const CandidateChat = () => {
               className={`flex animate-fade-in ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line ${
+                className={`w-fit max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line break-words ${
                   msg.role === "user" ? "chat-bubble-user text-foreground" : "chat-bubble-ai"
                 }`}
               >

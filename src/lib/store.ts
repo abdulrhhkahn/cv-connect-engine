@@ -129,8 +129,12 @@ export const useJobStore = () => {
       notify();
     },
 
-    cancelInterview: (id: string) => {
-      globalInterviews = globalInterviews.map((i) => (i.id === id ? { ...i, status: "cancelled" } : i));
+    cancelInterview: (id: string, reason?: string, cancelledBy?: "company" | "candidate") => {
+      globalInterviews = globalInterviews.map((i) =>
+        i.id === id
+          ? { ...i, status: "cancelled", cancellationReason: reason, cancelledBy, cancelledAt: new Date() }
+          : i
+      );
       notify();
     },
 
