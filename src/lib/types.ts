@@ -108,6 +108,7 @@ export interface Interview {
   proposedDurationMins?: number;
   proposedNote?: string;
   cancellationReason?: string;
+  cancellationMessage?: string;
   cancelledBy?: "company" | "candidate";
   cancelledAt?: Date;
 }
