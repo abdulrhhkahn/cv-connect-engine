@@ -107,6 +107,9 @@ export interface Interview {
   proposedAt?: Date;
   proposedDurationMins?: number;
   proposedNote?: string;
+  cancellationReason?: string;
+  cancelledBy?: "company" | "candidate";
+  cancelledAt?: Date;
 }
 
 export interface Notification {

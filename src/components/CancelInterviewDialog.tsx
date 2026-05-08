@@ -23,14 +23,15 @@ const CancelInterviewDialog = ({ open, onOpenChange, interview }: Props) => {
   const isCompany = user.role === "company";
 
   const handleCancel = () => {
-    cancelInterview(interview.id);
+    const reason = message.trim();
+    cancelInterview(interview.id, reason || undefined, isCompany ? "company" : "candidate");
     const recipientId = isCompany ? interview.candidateId : interview.companyId;
     const senderName = isCompany ? interview.companyName : interview.candidateName;
     addNotification({
       userId: recipientId,
       title: "Interview cancelled",
       message: `${senderName} cancelled the interview for "${interview.jobTitle}".${
-        message.trim() ? ` Message: "${message.trim()}"` : ""
+        reason ? ` Reason: "${reason}"` : ""
       }`,
       type: "interview",
       link: "/interviews",
