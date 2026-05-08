@@ -176,9 +176,13 @@ const Interviews = () => {
                           Cancelled{iv.cancelledBy ? ` by ${iv.cancelledBy}` : ""}
                           {iv.cancelledAt ? ` · ${new Date(iv.cancelledAt).toLocaleString()}` : ""}
                         </p>
-                        {iv.cancellationReason ? (
+                        {iv.cancellationReason && (
                           <p className="text-muted-foreground">Reason: "{iv.cancellationReason}"</p>
-                        ) : (
+                        )}
+                        {iv.cancellationMessage && (
+                          <p className="text-muted-foreground">Message: "{iv.cancellationMessage}"</p>
+                        )}
+                        {!iv.cancellationReason && !iv.cancellationMessage && (
                           <p className="text-muted-foreground">No reason provided.</p>
                         )}
                       </div>
