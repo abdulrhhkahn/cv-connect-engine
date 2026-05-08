@@ -16,12 +16,13 @@ import {
   CalendarClock,
   RefreshCw,
   CalendarPlus,
+  Link as LinkIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import RescheduleInterviewDialog from "@/components/RescheduleInterviewDialog";
 import CancelInterviewDialog from "@/components/CancelInterviewDialog";
 import type { Interview } from "@/lib/types";
-import { downloadInterviewICS } from "@/lib/ics";
+import { downloadInterviewICS, buildInterviewICS } from "@/lib/ics";
 
 const modeIcon = { video: Video, phone: Phone, onsite: MapPin } as const;
 
