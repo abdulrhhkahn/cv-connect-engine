@@ -1,16 +1,17 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useJobStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building2, MapPin, Globe, Phone, Mail, Users, Briefcase, Heart, ChevronRight } from "lucide-react";
+import { Building2, MapPin, Globe, Phone, Mail, Users, Briefcase, Heart, ChevronRight, ArrowLeft } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Job } from "@/lib/types";
 import { toast } from "sonner";
 
 const CompanyPublicProfile = () => {
   const { companyId } = useParams<{ companyId: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { companyProfiles, jobs, applications, toggleFollow, addApplication, addNotification } = useJobStore();
   const [openJob, setOpenJob] = useState<Job | null>(null);
