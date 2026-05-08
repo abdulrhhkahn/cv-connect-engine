@@ -61,6 +61,14 @@ const CompanyPublicProfile = () => {
 
   return (
     <div className="p-4 lg:p-8 max-w-3xl mx-auto">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/companies"))}
+        className="mb-3 -ml-2"
+      >
+        <ArrowLeft className="h-4 w-4 mr-1" /> Back
+      </Button>
       <div className="glass-card rounded-xl overflow-hidden animate-fade-in">
         {/* Banner */}
         <div className="h-40 bg-gradient-to-r from-primary/20 to-accent/30 overflow-hidden">
