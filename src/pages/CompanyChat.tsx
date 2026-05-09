@@ -14,7 +14,7 @@ import JobPreviewDialog from "@/components/JobPreviewDialog";
 import ExportHistoryPanel from "@/components/ExportHistoryPanel";
 import { toast } from "sonner";
 import { streamChat } from "@/lib/chat-stream";
-import { useJobStore as useJobStoreFull } from "@/lib/store";
+
 
 const isJobCreationPrompt = (s: string) => {
   const l = s.toLowerCase();
