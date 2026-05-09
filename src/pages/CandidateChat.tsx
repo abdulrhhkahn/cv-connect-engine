@@ -4,16 +4,16 @@ import { useJobStore } from "@/lib/store";
 import { Job } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Send, Sparkles, Briefcase, MapPin, Clock } from "lucide-react";
+import { Send, Sparkles } from "lucide-react";
 import MicButton from "@/components/MicButton";
+import { streamChat } from "@/lib/chat-stream";
+import { toast } from "sonner";
 
 interface ChatMsg {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
-  jobs?: Job[];
 }
 
 const generateResponse = (
