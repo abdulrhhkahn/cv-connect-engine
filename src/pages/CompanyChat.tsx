@@ -648,6 +648,7 @@ const CompanyChat = () => {
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
             placeholder="Describe the role you want to post..."
             className="flex-1"
+            disabled={isStreaming}
           />
           <MicButton onTranscript={(t) => setInput((prev) => (prev ? prev + " " : "") + t)} disabled={isStreaming} />
           {isStreaming ? (
