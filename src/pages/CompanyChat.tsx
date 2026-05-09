@@ -443,7 +443,20 @@ const CompanyChat = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)]">
-      <div className="flex items-center justify-end px-4 lg:px-8 pt-4">
+      <div className="flex items-center justify-end gap-2 px-4 lg:px-8 pt-4">
+        <Button variant="ghost" size="sm" onClick={startNewChat} className="gap-1.5">
+          <Plus className="h-3.5 w-3.5" /> <span className="hidden sm:inline">New chat</span>
+        </Button>
+        {user && (
+          <ChatThreadsSheet
+            role="company"
+            userId={user.id}
+            currentThreadId={threadId}
+            onSelect={openThread}
+            onNew={startNewChat}
+            refreshKey={threadsRefresh}
+          />
+        )}
         <ExportHistoryPanel />
       </div>
       <div className="flex-1 overflow-auto p-4 lg:p-8 pt-2">
@@ -636,10 +649,16 @@ const CompanyChat = () => {
             placeholder="Describe the role you want to post..."
             className="flex-1"
           />
-          <MicButton onTranscript={(t) => setInput((prev) => (prev ? prev + " " : "") + t)} disabled={isTyping} />
-          <Button onClick={handleSend} disabled={!input.trim() || isTyping}>
-            <Send className="h-4 w-4" />
-          </Button>
+          <MicButton onTranscript={(t) => setInput((prev) => (prev ? prev + " " : "") + t)} disabled={isStreaming} />
+          {isStreaming ? (
+            <Button onClick={handleStop} variant="destructive" aria-label="Stop response">
+              <Square className="h-4 w-4 fill-current" />
+            </Button>
+          ) : (
+            <Button onClick={handleSend} disabled={!input.trim()}>
+              <Send className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
       <JobPreviewDialog open={!!previewJob} onOpenChange={(o) => !o && setPreviewJob(null)} job={previewJob} />
