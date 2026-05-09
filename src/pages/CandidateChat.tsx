@@ -102,7 +102,7 @@ const CandidateChat = () => {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isTyping) return;
 
     const userMsg: ChatMsg = {
       id: crypto.randomUUID(),
@@ -110,24 +110,74 @@ const CandidateChat = () => {
       content: input,
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, userMsg]);
+    const history = [...messages, userMsg];
+    setMessages(history);
     setInput("");
     setIsTyping(true);
 
-    await new Promise((r) => setTimeout(r, 800 + Math.random() * 600));
-
-    const response = generateResponse(input, jobs, profile, calculateMatch);
-
-    const botMsg: ChatMsg = {
-      id: crypto.randomUUID(),
-      role: "assistant",
-      content: response.content,
-      timestamp: new Date(),
-      jobs: response.jobs,
+    const activeJobs = jobs.filter((j) => j.status === "active");
+    const context = {
+      candidate: profile
+        ? {
+            name: user?.name,
+            skills: profile.skills,
+            experience: profile.experience,
+            softSkills: profile.softSkills,
+            industryExperience: profile.industryExperience,
+            culturalFit: profile.culturalFit,
+          }
+        : null,
+      jobs: activeJobs.map((j) => {
+        const m = profile ? calculateMatch(j) : null;
+        return {
+          id: j.id,
+          title: j.title,
+          companyName: j.companyName,
+          location: j.location,
+          type: j.type,
+          experienceRequired: j.experienceRequired,
+          salary: j.salary,
+          requirements: j.requirements,
+          preferredSkills: j.preferredSkills,
+          softSkills: j.softSkills,
+          industryExperience: j.industryExperience,
+          culturalFit: j.culturalFit,
+          description: j.description,
+          matchScore: m?.score,
+          qualifies: m?.qualifies,
+        };
+      }),
     };
 
-    setMessages((prev) => [...prev, botMsg]);
-    setIsTyping(false);
+    const assistantId = crypto.randomUUID();
+    let acc = "";
+    let started = false;
+
+    await streamChat({
+      role: "candidate",
+      messages: history.map((m) => ({ role: m.role, content: m.content })),
+      context,
+      onDelta: (chunk) => {
+        acc += chunk;
+        if (!started) {
+          started = true;
+          setIsTyping(false);
+          setMessages((prev) => [
+            ...prev,
+            { id: assistantId, role: "assistant", content: acc, timestamp: new Date() },
+          ]);
+        } else {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId ? { ...m, content: acc } : m))
+          );
+        }
+      },
+      onDone: () => setIsTyping(false),
+      onError: (err) => {
+        setIsTyping(false);
+        toast.error(err.message || "Chat failed");
+      },
+    });
   };
 
   const quickActions = [
@@ -163,16 +213,6 @@ const CandidateChat = () => {
                   ) : (
                     <span key={i}>{part}</span>
                   )
-                )}
-                {msg.jobs && msg.jobs.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {msg.jobs.slice(0, 4).map((job) => (
-                      <Badge key={job.id} variant="secondary" className="text-xs gap-1">
-                        <Briefcase className="h-3 w-3" />
-                        {job.title}
-                      </Badge>
-                    ))}
-                  </div>
                 )}
               </div>
             </div>
