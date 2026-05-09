@@ -13,6 +13,14 @@ import MicButton from "@/components/MicButton";
 import JobPreviewDialog from "@/components/JobPreviewDialog";
 import ExportHistoryPanel from "@/components/ExportHistoryPanel";
 import { toast } from "sonner";
+import { streamChat } from "@/lib/chat-stream";
+
+
+const isJobCreationPrompt = (s: string) => {
+  const l = s.toLowerCase();
+  return /(create|post|draft|write|generate|make|need|hire|hiring|looking for|open)\b.*\b(job|role|position|posting|engineer|developer|designer|manager|analyst|scientist|representative|specialist)/i.test(l)
+    || /^(post|create|draft|generate|write|make)\s+(a|an)\s+/i.test(l);
+};
 
 const roleTemplates: Record<string, { keywords: string[]; title: string; description: string; requirements: string[]; preferredSkills: string[]; experience: string; industryExperience: string[]; softSkills: string[]; culturalFit: string[] }> = {
   frontend: {
@@ -273,33 +281,73 @@ const CompanyChat = () => {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || !user) return;
+    if (!input.trim() || !user || isTyping) return;
     const userMsg: DraftMessage = {
       id: crypto.randomUUID(),
       role: "user",
       content: input,
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, userMsg]);
+    const history = [...messages, userMsg];
+    setMessages(history);
+    const currentInput = input;
     setInput("");
     setIsTyping(true);
 
-    await new Promise((r) => setTimeout(r, 1000));
+    if (isJobCreationPrompt(currentInput)) {
+      await new Promise((r) => setTimeout(r, 600));
+      const job = generateJobFromPrompt(currentInput, user.id, user.company || user.name);
+      const suggestions = generateSuggestions(job);
+      const response: DraftMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: `I've drafted a **${job.title}** posting. Review and edit any field below — when it looks right, click **Publish Job** to make it live.`,
+        timestamp: new Date(),
+        draftJob: job,
+        suggestions,
+      };
+      setMessages((prev) => [...prev, response]);
+      setIsTyping(false);
+      return;
+    }
 
-    const job = generateJobFromPrompt(input, user.id, user.company || user.name);
-    const suggestions = generateSuggestions(job);
-
-    const response: DraftMessage = {
-      id: crypto.randomUUID(),
-      role: "assistant",
-      content: `I've drafted a **${job.title}** posting. Review and edit any field below — when it looks right, click **Publish Job** to make it live.`,
-      timestamp: new Date(),
-      draftJob: job,
-      suggestions,
+    const context = {
+      company: { name: user.company || user.name },
+      recentDrafts: history
+        .filter((m) => (m as DraftMessage).draftJob)
+        .slice(-3)
+        .map((m) => (m as DraftMessage).draftJob),
     };
 
-    setMessages((prev) => [...prev, response]);
-    setIsTyping(false);
+    const assistantId = crypto.randomUUID();
+    let acc = "";
+    let started = false;
+
+    await streamChat({
+      role: "company",
+      messages: history.map((m) => ({ role: m.role, content: m.content })),
+      context,
+      onDelta: (chunk) => {
+        acc += chunk;
+        if (!started) {
+          started = true;
+          setIsTyping(false);
+          setMessages((prev) => [
+            ...prev,
+            { id: assistantId, role: "assistant", content: acc, timestamp: new Date() },
+          ]);
+        } else {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId ? { ...m, content: acc } : m))
+          );
+        }
+      },
+      onDone: () => setIsTyping(false),
+      onError: (err) => {
+        setIsTyping(false);
+        toast.error(err.message || "Chat failed");
+      },
+    });
   };
 
 
