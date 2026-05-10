@@ -1,28 +1,18 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatMessage, Job } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Send, Sparkles, Briefcase, Save, CheckCircle2, Lightbulb, FileDown, Square, Plus } from "lucide-react";
+import { Send, Sparkles, Briefcase, Save, CheckCircle2, Lightbulb, FileDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useJobStore } from "@/lib/store";
 import TagInput from "@/components/TagInput";
 import MicButton from "@/components/MicButton";
 import JobPreviewDialog from "@/components/JobPreviewDialog";
 import ExportHistoryPanel from "@/components/ExportHistoryPanel";
-import ChatThreadsSheet from "@/components/ChatThreadsSheet";
-import { ChatThread, loadThreads, saveThread, titleFromMessages, PersistedMessage } from "@/lib/chat-threads";
 import { toast } from "sonner";
-import { streamChat } from "@/lib/chat-stream";
-
-
-const isJobCreationPrompt = (s: string) => {
-  const l = s.toLowerCase();
-  return /(create|post|draft|write|generate|make|need|hire|hiring|looking for|open)\b.*\b(job|role|position|posting|engineer|developer|designer|manager|analyst|scientist|representative|specialist)/i.test(l)
-    || /^(post|create|draft|generate|write|make)\s+(a|an)\s+/i.test(l);
-};
 
 const roleTemplates: Record<string, { keywords: string[]; title: string; description: string; requirements: string[]; preferredSkills: string[]; experience: string; industryExperience: string[]; softSkills: string[]; culturalFit: string[] }> = {
   frontend: {
@@ -235,103 +225,26 @@ interface DraftMessage extends ChatMessage {
   suggestions?: string[];
 }
 
-const WELCOME = (name?: string): DraftMessage => ({
-  id: "welcome",
-  role: "assistant",
-  content: `Hi ${name}! 👋 I'm your AI hiring assistant. Tell me about the role you want to fill and I'll draft a professional job posting that you can refine inline before saving.\n\nTry something like:\n• "Post a senior frontend engineer role"\n• "I need a remote backend developer with $120k - $150k"\n• "Create a job for a UX designer in Berlin"`,
-  timestamp: new Date(),
-});
-
-const toPersisted = (msgs: DraftMessage[]): PersistedMessage[] =>
-  msgs.map((m) => ({
-    id: m.id,
-    role: m.role,
-    content: m.content,
-    timestamp: (m.timestamp instanceof Date ? m.timestamp : new Date(m.timestamp as unknown as string)).toISOString(),
-    draftJob: m.draftJob,
-    saved: m.saved,
-    suggestions: m.suggestions,
-  }));
-
-const fromPersisted = (msgs: PersistedMessage[]): DraftMessage[] =>
-  msgs.map((m) => ({
-    id: m.id,
-    role: m.role,
-    content: m.content,
-    timestamp: new Date(m.timestamp),
-    draftJob: m.draftJob as Job | undefined,
-    saved: m.saved,
-    suggestions: m.suggestions,
-  }));
-
 const CompanyChat = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { addJob } = useJobStore();
-  const [threadId, setThreadId] = useState<string>(() => crypto.randomUUID());
-  const [messages, setMessages] = useState<DraftMessage[]>([WELCOME(user?.name)]);
+  const [messages, setMessages] = useState<DraftMessage[]>([
+    {
+      id: "welcome",
+      role: "assistant",
+      content: `Hi ${user?.name}! 👋 I'm your AI hiring assistant. Tell me about the role you want to fill and I'll draft a professional job posting that you can refine inline before saving.\n\nTry something like:\n• "Post a senior frontend engineer role"\n• "I need a remote backend developer with $120k - $150k"\n• "Create a job for a UX designer in Berlin"`,
+      timestamp: new Date(),
+    },
+  ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [isStreaming, setIsStreaming] = useState(false);
   const [previewJob, setPreviewJob] = useState<Job | null>(null);
-  const [threadsRefresh, setThreadsRefresh] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    const existing = loadThreads("company", user.id);
-    if (existing.length > 0) {
-      const t = existing[0];
-      setThreadId(t.id);
-      setMessages(fromPersisted(t.messages));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (!user) return;
-    if (messages.length <= 1 && messages[0]?.id === "welcome") return;
-    const thread: ChatThread = {
-      id: threadId,
-      title: titleFromMessages(toPersisted(messages)),
-      role: "company",
-      userId: user.id,
-      messages: toPersisted(messages),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    saveThread(thread);
-    setThreadsRefresh((n) => n + 1);
-  }, [messages, threadId, user]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  const startNewChat = useCallback(() => {
-    abortRef.current?.abort();
-    setThreadId(crypto.randomUUID());
-    setMessages([WELCOME(user?.name)]);
-    setIsTyping(false);
-    setIsStreaming(false);
-  }, [user?.name]);
-
-  const openThread = useCallback((t: ChatThread) => {
-    abortRef.current?.abort();
-    setThreadId(t.id);
-    setMessages(fromPersisted(t.messages));
-    setIsTyping(false);
-    setIsStreaming(false);
-  }, []);
-
-  const handleStop = () => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    setIsTyping(false);
-    setIsStreaming(false);
-    toast.message("Response stopped");
-  };
 
   const updateDraft = (msgId: string, updates: Partial<Job>) => {
     setMessages((prev) =>
@@ -360,103 +273,39 @@ const CompanyChat = () => {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || !user || isStreaming) return;
+    if (!input.trim() || !user) return;
     const userMsg: DraftMessage = {
       id: crypto.randomUUID(),
       role: "user",
       content: input,
       timestamp: new Date(),
     };
-    const history = [...messages, userMsg];
-    setMessages(history);
-    const currentInput = input;
+    setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsTyping(true);
-    setIsStreaming(true);
 
-    if (isJobCreationPrompt(currentInput)) {
-      await new Promise((r) => setTimeout(r, 600));
-      const job = generateJobFromPrompt(currentInput, user.id, user.company || user.name);
-      const suggestions = generateSuggestions(job);
-      const response: DraftMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: `I've drafted a **${job.title}** posting. Review and edit any field below — when it looks right, click **Publish Job** to make it live.`,
-        timestamp: new Date(),
-        draftJob: job,
-        suggestions,
-      };
-      setMessages((prev) => [...prev, response]);
-      setIsTyping(false);
-      setIsStreaming(false);
-      return;
-    }
+    await new Promise((r) => setTimeout(r, 1000));
 
-    const context = {
-      company: { name: user.company || user.name },
-      recentDrafts: history
-        .filter((m) => (m as DraftMessage).draftJob)
-        .slice(-3)
-        .map((m) => (m as DraftMessage).draftJob),
+    const job = generateJobFromPrompt(input, user.id, user.company || user.name);
+    const suggestions = generateSuggestions(job);
+
+    const response: DraftMessage = {
+      id: crypto.randomUUID(),
+      role: "assistant",
+      content: `I've drafted a **${job.title}** posting. Review and edit any field below — when it looks right, click **Publish Job** to make it live.`,
+      timestamp: new Date(),
+      draftJob: job,
+      suggestions,
     };
 
-    const assistantId = crypto.randomUUID();
-    let acc = "";
-    let started = false;
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    await streamChat({
-      role: "company",
-      messages: history.map((m) => ({ role: m.role, content: m.content })),
-      context,
-      signal: controller.signal,
-      onDelta: (chunk) => {
-        acc += chunk;
-        if (!started) {
-          started = true;
-          setIsTyping(false);
-          setMessages((prev) => [
-            ...prev,
-            { id: assistantId, role: "assistant", content: acc, timestamp: new Date() },
-          ]);
-        } else {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === assistantId ? { ...m, content: acc } : m))
-          );
-        }
-      },
-      onDone: () => {
-        setIsTyping(false);
-        setIsStreaming(false);
-        abortRef.current = null;
-      },
-      onError: (err) => {
-        setIsTyping(false);
-        setIsStreaming(false);
-        abortRef.current = null;
-        if (err.name !== "AbortError") toast.error(err.message || "Chat failed");
-      },
-    });
+    setMessages((prev) => [...prev, response]);
+    setIsTyping(false);
   };
 
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)]">
-      <div className="flex items-center justify-end gap-2 px-4 lg:px-8 pt-4">
-        <Button variant="ghost" size="sm" onClick={startNewChat} className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" /> <span className="hidden sm:inline">New chat</span>
-        </Button>
-        {user && (
-          <ChatThreadsSheet
-            role="company"
-            userId={user.id}
-            currentThreadId={threadId}
-            onSelect={openThread}
-            onNew={startNewChat}
-            refreshKey={threadsRefresh}
-          />
-        )}
+      <div className="flex items-center justify-end px-4 lg:px-8 pt-4">
         <ExportHistoryPanel />
       </div>
       <div className="flex-1 overflow-auto p-4 lg:p-8 pt-2">
@@ -648,18 +497,11 @@ const CompanyChat = () => {
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
             placeholder="Describe the role you want to post..."
             className="flex-1"
-            disabled={isStreaming}
           />
-          <MicButton onTranscript={(t) => setInput((prev) => (prev ? prev + " " : "") + t)} disabled={isStreaming} />
-          {isStreaming ? (
-            <Button onClick={handleStop} variant="destructive" aria-label="Stop response">
-              <Square className="h-4 w-4 fill-current" />
-            </Button>
-          ) : (
-            <Button onClick={handleSend} disabled={!input.trim()}>
-              <Send className="h-4 w-4" />
-            </Button>
-          )}
+          <MicButton onTranscript={(t) => setInput((prev) => (prev ? prev + " " : "") + t)} disabled={isTyping} />
+          <Button onClick={handleSend} disabled={!input.trim() || isTyping}>
+            <Send className="h-4 w-4" />
+          </Button>
         </div>
       </div>
       <JobPreviewDialog open={!!previewJob} onOpenChange={(o) => !o && setPreviewJob(null)} job={previewJob} />
