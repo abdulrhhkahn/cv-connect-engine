@@ -85,7 +85,7 @@ const CompanyPublicProfile = () => {
               )}
             </div>
             <div className="pt-8 flex-1">
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between gap-2 flex-wrap">
                 <div>
                   <h1 className="text-xl font-bold">{profile.companyName}</h1>
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
@@ -168,7 +168,7 @@ const CompanyPublicProfile = () => {
       {/* Job detail dialog */}
       <Dialog open={!!openJob} onOpenChange={(o) => !o && setOpenJob(null)}>
         {openJob && (
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-auto">
+          <DialogContent className="w-full max-w-lg max-h-[85vh] overflow-auto">
             <DialogHeader>
               <DialogTitle>{openJob.title}</DialogTitle>
             </DialogHeader>

@@ -189,12 +189,12 @@ const CandidateProfilePage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div><Label>Full name</Label><Input value={form.name || ""} onChange={(e) => setField("name", e.target.value)} className="mt-1" /></div>
           <div><Label>Email</Label><Input value={form.email || ""} onChange={(e) => setField("email", e.target.value)} className="mt-1" /></div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Phone</Label>
             <Input value={form.phone || ""} onChange={(e) => setField("phone", e.target.value)} placeholder="+1 (555) 000-0000" className="mt-1" />
@@ -205,7 +205,7 @@ const CandidateProfilePage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label className="flex items-center gap-1.5"><Linkedin className="h-3.5 w-3.5" /> LinkedIn</Label>
             <Input value={form.linkedIn || ""} onChange={(e) => setField("linkedIn", e.target.value)} placeholder="linkedin.com/in/..." className="mt-1" />
@@ -231,7 +231,7 @@ const CandidateProfilePage = () => {
         <TagInput label="Soft Skills" tags={form.softSkills || []} onAdd={(t) => setField("softSkills", [...(form.softSkills || []), t])} onRemove={(t) => setField("softSkills", (form.softSkills || []).filter(s => s !== t))} placeholder="e.g. Leadership, Communication..." />
         <TagInput label="Cultural Preferences" tags={form.culturalFit || []} onAdd={(t) => setField("culturalFit", [...(form.culturalFit || []), t])} onRemove={(t) => setField("culturalFit", (form.culturalFit || []).filter(s => s !== t))} placeholder="e.g. Collaborative, Remote-first..." />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div><Label>Experience</Label><Input value={form.experience || ""} onChange={(e) => setField("experience", e.target.value)} placeholder="e.g. 4 years" className="mt-1" /></div>
           <div><Label>Education</Label><Input value={form.education || ""} onChange={(e) => setField("education", e.target.value)} placeholder="e.g. B.Sc. Computer Science" className="mt-1" /></div>
         </div>

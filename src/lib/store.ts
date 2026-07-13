@@ -1,146 +1,271 @@
-import { useState, useCallback } from "react";
-import { Job, Application, CandidateProfile, CompanyProfile, Interview, ExportHistoryEntry, Notification } from "./types";
-import { mockJobs, mockApplications, mockCandidateProfiles, mockCompanyProfiles } from "./mock-data";
+/**
+ * store.ts — React Query-backed store
+ *
+ * Public API is identical to the old in-memory store so no page changes needed.
+ * All reads are cached by React Query; writes invalidate the relevant queries.
+ */
 
-let globalJobs = [...mockJobs];
-let globalApplications = [...mockApplications];
-let globalProfiles = [...mockCandidateProfiles];
-let globalCompanyProfiles = [...mockCompanyProfiles];
-let globalInterviews: Interview[] = [];
-let globalExportHistory: ExportHistoryEntry[] = [];
-let globalNotifications: Notification[] = [];
-let listeners: (() => void)[] = [];
-
-const notify = () => listeners.forEach((l) => l());
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import * as db from './db';
+import type {
+  Job, Application, CandidateProfile, CompanyProfile,
+  Interview, ExportHistoryEntry, Notification,
+} from './types';
 
 export const useJobStore = () => {
-  const [, setTick] = useState(0);
-  const rerender = useCallback(() => setTick((t) => t + 1), []);
+  const { user }  = useAuth();
+  const qc        = useQueryClient();
+  const uid       = user?.id;
+  const isCompany = user?.role === 'company';
 
-  useState(() => {
-    listeners.push(rerender);
-    return () => {
-      listeners = listeners.filter((l) => l !== rerender);
-    };
+  // ── Queries ───────────────────────────────────────────────────
+
+  const jobsQ = useQuery({
+    queryKey: ['jobs', uid],
+    queryFn:  db.fetchJobs,
+    enabled:  !!uid,
+    staleTime: 30_000,
   });
 
+  const appsQ = useQuery({
+    queryKey: ['applications', uid],
+    queryFn:  db.fetchApplications,
+    enabled:  !!uid,
+    staleTime: 30_000,
+  });
+
+  const candidateProfilesQ = useQuery({
+    queryKey: ['candidate_profiles'],
+    queryFn:  db.fetchCandidateProfiles,
+    enabled:  !!uid,
+    staleTime: 60_000,
+  });
+
+  const companyProfilesQ = useQuery({
+    queryKey: ['company_profiles'],
+    queryFn:  db.fetchCompanyProfiles,
+    enabled:  !!uid,
+    staleTime: 60_000,
+  });
+
+  const interviewsQ = useQuery({
+    queryKey: ['interviews', uid],
+    queryFn:  db.fetchInterviews,
+    enabled:  !!uid,
+    staleTime: 30_000,
+  });
+
+  const exportHistoryQ = useQuery({
+    queryKey: ['export_history', uid],
+    queryFn:  db.fetchExportHistory,
+    enabled:  !!uid && isCompany,
+    staleTime: 60_000,
+  });
+
+  const notificationsQ = useQuery({
+    queryKey: ['notifications', uid],
+    queryFn:  () => db.fetchNotifications(uid!),
+    enabled:  !!uid,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  });
+
+  // ── Mutation helpers ─────────────────────────────────────────
+
+  const inv = (keys: string[][]) =>
+    keys.forEach((k) => qc.invalidateQueries({ queryKey: k }));
+
+  const err =
+    (label: string) => (e: unknown) => {
+      console.error(label, e);
+      toast.error(label);
+    };
+
+  // ── Jobs ──────────────────────────────────────────────────────
+
+  const addJobMut = useMutation({
+    mutationFn: db.insertJob,
+    onSuccess:  () => inv([['jobs']]),
+    onError:    err('Failed to save job'),
+  });
+
+  const updateJobMut = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Job> }) =>
+      db.patchJob(id, updates),
+    onSuccess: () => inv([['jobs']]),
+    onError:   err('Failed to update job'),
+  });
+
+  const deleteJobMut = useMutation({
+    mutationFn: db.removeJob,
+    onSuccess:  () => inv([['jobs']]),
+    onError:    err('Failed to delete job'),
+  });
+
+  // ── Applications ──────────────────────────────────────────────
+
+  const addApplicationMut = useMutation({
+    mutationFn: db.insertApplication,
+    onSuccess:  () => inv([['applications']]),
+    onError:    err('Failed to submit application'),
+  });
+
+  const updateApplicationMut = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Application> }) =>
+      db.patchApplication(id, updates),
+    onSuccess: () => inv([['applications']]),
+    onError:   err('Failed to update application'),
+  });
+
+  // ── Profiles ──────────────────────────────────────────────────
+
+  const profiles = candidateProfilesQ.data ?? [];
+
+  const updateProfileMut = useMutation({
+    mutationFn: ({ userId, updates }: { userId: string; updates: Partial<CandidateProfile> }) => {
+      const existing = profiles.find((p) => p.userId === userId) ?? {
+        userId,
+        name:  user?.name  ?? '',
+        email: user?.email ?? '',
+        title: '', summary: '', skills: [], experience: '', education: '',
+        industryExperience: [], softSkills: [], culturalFit: [],
+      } as CandidateProfile;
+      return db.upsertCandidateProfile({ ...existing, ...updates });
+    },
+    onSuccess: () => inv([['candidate_profiles']]),
+    onError:   err('Failed to save profile'),
+  });
+
+  const companyProfiles = companyProfilesQ.data ?? [];
+
+  const updateCompanyProfileMut = useMutation({
+    mutationFn: ({ userId, updates }: { userId: string; updates: Partial<CompanyProfile> }) => {
+      const existing = companyProfiles.find((p) => p.userId === userId) ?? {
+        userId,
+        companyName: user?.company ?? '',
+        about: '', industry: '', location: '', size: '',
+        website: '', contactEmail: user?.email ?? '', contactPhone: '',
+        employees: [], followers: [],
+      } as CompanyProfile;
+      return db.upsertCompanyProfile({ ...existing, ...updates });
+    },
+    onSuccess: () => inv([['company_profiles']]),
+    onError:   err('Failed to save company profile'),
+  });
+
+  const toggleFollowMut = useMutation({
+    mutationFn: ({ companyUserId, candidateUserId }: { companyUserId: string; candidateUserId: string }) =>
+      db.toggleFollowInDB(companyUserId, candidateUserId),
+    onSuccess: () => inv([['company_profiles']]),
+    onError:   err('Follow action failed'),
+  });
+
+  // ── Interviews ────────────────────────────────────────────────
+
+  const addInterviewMut = useMutation({
+    mutationFn: db.insertInterview,
+    onSuccess:  () => inv([['interviews']]),
+    onError:    err('Failed to schedule interview'),
+  });
+
+  const updateInterviewMut = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Interview> }) =>
+      db.patchInterview(id, updates),
+    onSuccess: () => inv([['interviews']]),
+    onError:   err('Failed to update interview'),
+  });
+
+  const cancelInterviewMut = useMutation({
+    mutationFn: ({
+      id, reason, cancelledBy, message,
+    }: { id: string; reason?: string; cancelledBy?: 'company' | 'candidate'; message?: string }) =>
+      db.patchInterview(id, {
+        status:              'cancelled',
+        cancellationReason:  reason,
+        cancellationMessage: message,
+        cancelledBy,
+        cancelledAt: new Date(),
+      }),
+    onSuccess: () => inv([['interviews']]),
+    onError:   err('Failed to cancel interview'),
+  });
+
+  // ── Export history ────────────────────────────────────────────
+
+  const addExportHistoryMut = useMutation({
+    mutationFn: db.insertExportHistory,
+    onSuccess:  () => inv([['export_history']]),
+    onError:    err('Failed to save export history'),
+  });
+
+  // ── Notifications ─────────────────────────────────────────────
+
+  const addNotificationMut = useMutation({
+    mutationFn: db.insertNotification,
+    onSuccess:  () => inv([['notifications']]),
+    onError:    (e) => console.error('Notification insert failed:', e),
+  });
+
+  const markReadMut = useMutation({
+    mutationFn: db.markNotificationReadById,
+    onSuccess:  () => inv([['notifications', uid]]),
+    onError:    (e) => console.error(e),
+  });
+
+  const markAllReadMut = useMutation({
+    mutationFn: (userId: string) => db.markAllNotificationsReadByUser(userId),
+    onSuccess:  () => inv([['notifications', uid]]),
+    onError:    (e) => console.error(e),
+  });
+
+  // ── Public API (same shape as the old in-memory store) ───────
+
   return {
-    jobs: globalJobs,
-    applications: globalApplications,
-    profiles: globalProfiles,
-    companyProfiles: globalCompanyProfiles,
-    interviews: globalInterviews,
-    exportHistory: globalExportHistory,
-    notifications: globalNotifications,
+    // ── Data ──
+    jobs:            jobsQ.data           ?? [],
+    applications:    appsQ.data           ?? [],
+    profiles,
+    companyProfiles,
+    interviews:      interviewsQ.data     ?? [],
+    exportHistory:   exportHistoryQ.data  ?? [],
+    notifications:   notificationsQ.data  ?? [],
 
-    addNotification: (n: Omit<Notification, "id" | "read" | "createdAt"> & Partial<Pick<Notification, "id" | "read" | "createdAt">>) => {
-      const full: Notification = {
-        id: n.id || crypto.randomUUID(),
-        read: n.read ?? false,
-        createdAt: n.createdAt || new Date(),
-        userId: n.userId,
-        title: n.title,
-        message: n.message,
-        type: n.type,
-        link: n.link,
-      };
-      globalNotifications = [full, ...globalNotifications].slice(0, 200);
-      notify();
-    },
+    // Optional loading flag (new — pages can use this if they want)
+    isLoading: jobsQ.isLoading || appsQ.isLoading,
 
-    markNotificationRead: (id: string) => {
-      globalNotifications = globalNotifications.map((n) => (n.id === id ? { ...n, read: true } : n));
-      notify();
-    },
+    // ── Getters ──
+    getProfile:        (userId: string) => profiles.find((p) => p.userId === userId),
+    getCompanyProfile: (userId: string) => companyProfiles.find((p) => p.userId === userId),
 
-    markAllNotificationsRead: (userId: string) => {
-      globalNotifications = globalNotifications.map((n) => (n.userId === userId ? { ...n, read: true } : n));
-      notify();
-    },
+    // ── Job mutations ──
+    addJob:    (job: Job)                              => addJobMut.mutate(job),
+    updateJob: (id: string, updates: Partial<Job>)     => updateJobMut.mutate({ id, updates }),
+    deleteJob: (id: string)                            => deleteJobMut.mutate(id),
 
-    addJob: (job: Job) => {
-      globalJobs = [job, ...globalJobs];
-      notify();
-    },
+    // ── Application mutations ──
+    addApplication:    (app: Application)                            => addApplicationMut.mutate(app),
+    updateApplication: (id: string, updates: Partial<Application>)  => updateApplicationMut.mutate({ id, updates }),
 
-    updateJob: (id: string, updates: Partial<Job>) => {
-      globalJobs = globalJobs.map((j) => (j.id === id ? { ...j, ...updates } : j));
-      notify();
-    },
+    // ── Profile mutations ──
+    updateProfile:        (userId: string, updates: Partial<CandidateProfile>) => updateProfileMut.mutate({ userId, updates }),
+    updateCompanyProfile: (userId: string, updates: Partial<CompanyProfile>)   => updateCompanyProfileMut.mutate({ userId, updates }),
+    toggleFollow:         (companyUserId: string, candidateUserId: string)     => toggleFollowMut.mutate({ companyUserId, candidateUserId }),
 
-    deleteJob: (id: string) => {
-      globalJobs = globalJobs.filter((j) => j.id !== id);
-      notify();
-    },
+    // ── Interview mutations ──
+    addInterview:    (iv: Interview)                                 => addInterviewMut.mutate(iv),
+    updateInterview: (id: string, updates: Partial<Interview>)       => updateInterviewMut.mutate({ id, updates }),
+    cancelInterview: (id: string, reason?: string, cancelledBy?: 'company' | 'candidate', message?: string) =>
+      cancelInterviewMut.mutate({ id, reason, cancelledBy, message }),
 
-    addApplication: (app: Application) => {
-      globalApplications = [app, ...globalApplications];
-      notify();
-    },
+    // ── Export history mutations ──
+    addExportHistory: (entry: ExportHistoryEntry) => addExportHistoryMut.mutate(entry),
 
-    updateApplication: (id: string, updates: Partial<Application>) => {
-      globalApplications = globalApplications.map((a) => (a.id === id ? { ...a, ...updates } : a));
-      notify();
-    },
-
-    updateProfile: (userId: string, updates: Partial<CandidateProfile>) => {
-      const idx = globalProfiles.findIndex((p) => p.userId === userId);
-      if (idx >= 0) {
-        globalProfiles = globalProfiles.map((p) => (p.userId === userId ? { ...p, ...updates } : p));
-      } else {
-        globalProfiles = [...globalProfiles, { userId, ...updates } as CandidateProfile];
-      }
-      notify();
-    },
-
-    getProfile: (userId: string) => globalProfiles.find((p) => p.userId === userId),
-
-    getCompanyProfile: (userId: string) => globalCompanyProfiles.find((p) => p.userId === userId),
-
-    updateCompanyProfile: (userId: string, updates: Partial<CompanyProfile>) => {
-      const idx = globalCompanyProfiles.findIndex((p) => p.userId === userId);
-      if (idx >= 0) {
-        globalCompanyProfiles = globalCompanyProfiles.map((p) => (p.userId === userId ? { ...p, ...updates } : p));
-      } else {
-        globalCompanyProfiles = [...globalCompanyProfiles, { userId, ...updates } as CompanyProfile];
-      }
-      notify();
-    },
-
-    toggleFollow: (companyUserId: string, candidateUserId: string) => {
-      globalCompanyProfiles = globalCompanyProfiles.map((p) => {
-        if (p.userId === companyUserId) {
-          const followers = p.followers || [];
-          const isFollowing = followers.includes(candidateUserId);
-          return { ...p, followers: isFollowing ? followers.filter((f) => f !== candidateUserId) : [...followers, candidateUserId] };
-        }
-        return p;
-      });
-      notify();
-    },
-
-    addInterview: (interview: Interview) => {
-      globalInterviews = [interview, ...globalInterviews];
-      notify();
-    },
-
-    updateInterview: (id: string, updates: Partial<Interview>) => {
-      globalInterviews = globalInterviews.map((i) => (i.id === id ? { ...i, ...updates } : i));
-      notify();
-    },
-
-    cancelInterview: (id: string, reason?: string, cancelledBy?: "company" | "candidate", message?: string) => {
-      globalInterviews = globalInterviews.map((i) =>
-        i.id === id
-          ? { ...i, status: "cancelled", cancellationReason: reason, cancellationMessage: message, cancelledBy, cancelledAt: new Date() }
-          : i
-      );
-      notify();
-    },
-
-    addExportHistory: (entry: ExportHistoryEntry) => {
-      globalExportHistory = [entry, ...globalExportHistory].slice(0, 50);
-      notify();
-    },
+    // ── Notification mutations ──
+    addNotification:          (n: Omit<Notification, 'id' | 'read' | 'createdAt'> & Partial<Pick<Notification, 'id' | 'read' | 'createdAt'>>) =>
+      addNotificationMut.mutate(n),
+    markNotificationRead:     (id: string)     => markReadMut.mutate(id),
+    markAllNotificationsRead: (userId: string) => markAllReadMut.mutate(userId),
   };
 };

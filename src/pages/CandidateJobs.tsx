@@ -12,7 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Job, Application } from "@/lib/types";
-import { Briefcase, MapPin, Clock, DollarSign, CheckCircle2, AlertTriangle, XCircle, Users, Heart, Building2, Search, Filter } from "lucide-react";
+import { Briefcase, MapPin, Clock, DollarSign, CheckCircle2, AlertTriangle, XCircle, Users, Heart, Building2, Search, Filter, Star } from "lucide-react";
+import { isFeaturedActive } from "@/lib/billing";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { WORLD_LOCATIONS, INDUSTRIES } from "@/lib/reference-data";
@@ -139,6 +140,12 @@ const CandidateJobs = () => {
         if (matchFilter === "low" && score >= 50) return false;
       }
       return true;
+    }).sort((a, b) => {
+      // Featured + active jobs float to the top
+      const aFeat = isFeaturedActive(a) ? 1 : 0;
+      const bFeat = isFeaturedActive(b) ? 1 : 0;
+      if (aFeat !== bFeat) return bFeat - aFeat;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   }, [activeJobs, searchQuery, locationFilter, typeFilter, matchFilter, industryFilter, profile]);
 
@@ -196,7 +203,7 @@ const CandidateJobs = () => {
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
           <Select value={locationFilter} onValueChange={setLocationFilter}>
-            <SelectTrigger className="w-[160px] h-8 text-xs">
+            <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs">
               <SelectValue placeholder="Location" />
             </SelectTrigger>
             <SelectContent>
@@ -205,7 +212,7 @@ const CandidateJobs = () => {
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[140px] h-8 text-xs">
+            <SelectTrigger className="w-full sm:w-[140px] h-8 text-xs">
               <SelectValue placeholder="Job Type" />
             </SelectTrigger>
             <SelectContent>
@@ -218,7 +225,7 @@ const CandidateJobs = () => {
           </Select>
           {profile && (
             <Select value={matchFilter} onValueChange={setMatchFilter}>
-              <SelectTrigger className="w-[140px] h-8 text-xs">
+              <SelectTrigger className="w-full sm:w-[140px] h-8 text-xs">
                 <SelectValue placeholder="Match Score" />
               </SelectTrigger>
               <SelectContent>
@@ -231,7 +238,7 @@ const CandidateJobs = () => {
           )}
           {industries.length > 0 && (
             <Select value={industryFilter} onValueChange={setIndustryFilter}>
-              <SelectTrigger className="w-[150px] h-8 text-xs">
+              <SelectTrigger className="w-full sm:w-[150px] h-8 text-xs">
                 <SelectValue placeholder="Industry" />
               </SelectTrigger>
               <SelectContent>
@@ -267,12 +274,19 @@ const CandidateJobs = () => {
             return (
               <div
                 key={job.id}
-                className="glass-card rounded-xl p-5 cursor-pointer hover:shadow-md transition-shadow animate-fade-in"
+                className={`glass-card rounded-xl p-5 cursor-pointer hover:shadow-md transition-shadow animate-fade-in ${
+                  isFeaturedActive(job) ? "border-2 border-yellow-400/50 dark:border-yellow-500/40" : ""
+                }`}
                 onClick={() => setSelectedJob(job)}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      {isFeaturedActive(job) && (
+                        <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-400/40 gap-1 text-xs">
+                          <Star className="h-3 w-3 fill-current" /> Featured
+                        </Badge>
+                      )}
                       <h3 className="font-semibold">{job.title}</h3>
                       {showMatch && (
                         <Badge
@@ -309,7 +323,7 @@ const CandidateJobs = () => {
           const company = companyProfiles.find((c) => c.userId === selectedJob.companyId);
           const isFollowing = !!(user && company?.followers?.includes(user.id));
           return (
-            <DialogContent className="max-w-lg max-h-[85vh] overflow-auto">
+            <DialogContent className="w-full max-w-lg max-h-[85vh] overflow-auto">
               <DialogHeader>
                 <DialogTitle>{selectedJob.title}</DialogTitle>
               </DialogHeader>

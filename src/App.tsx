@@ -24,7 +24,20 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const AuthenticatedRoutes = () => {
-  const { user } = useAuth();
+  const { user, loading, isPasswordRecovery } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-8 w-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  // User clicked a password-reset email link — Supabase auto-signs them in,
+  // but we must show the "set new password" form instead of the dashboard.
+  if (isPasswordRecovery) return <Landing />;
+
   if (!user) return <Landing />;
 
   const isCompany = user.role === "company";

@@ -122,12 +122,12 @@ const CompanyProfilePage = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><Label>Company Name</Label><Input value={form.companyName || ""} onChange={(e) => setField("companyName", e.target.value)} className="mt-1" /></div>
             <div><Label>Industry</Label><Input value={form.industry || ""} onChange={(e) => setField("industry", e.target.value)} placeholder="e.g. Technology / SaaS" className="mt-1" /></div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Location</Label>
               <Input value={form.location || ""} onChange={(e) => setField("location", e.target.value)} placeholder="City, State" className="mt-1" />
@@ -143,7 +143,7 @@ const CompanyProfilePage = () => {
             <Textarea value={form.about || ""} onChange={(e) => setField("about", e.target.value)} placeholder="Tell candidates about your company..." rows={4} className="mt-1" />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <Label className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" /> Website</Label>
               <Input value={form.website || ""} onChange={(e) => setField("website", e.target.value)} placeholder="https://..." className="mt-1" />

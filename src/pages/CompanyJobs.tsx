@@ -13,7 +13,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, Globe, Archive, Plus, Upload } from "lucide-react";
+import { Pencil, Trash2, Globe, Archive, Plus, Upload, Star, Zap } from "lucide-react";
+import PricingModal from "@/components/PricingModal";
+import FeaturedJobModal from "@/components/FeaturedJobModal";
+import { PLANS, Plan, canAddJob, isFeaturedActive } from "@/lib/billing";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { extractTextFromFile } from "@/lib/document-parser";
@@ -97,12 +100,20 @@ const statusColors: Record<string, string> = {
 
 const CompanyJobs = () => {
   const { user } = useAuth();
-  const { jobs, addJob, updateJob, deleteJob } = useJobStore();
+  const { jobs, addJob, updateJob, deleteJob, getCompanyProfile } = useJobStore();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [editForm, setEditForm] = useState<Partial<Job>>({});
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const companyProfile = user ? getCompanyProfile(user.id) : null;
+  const plan: Plan = (companyProfile?.plan ?? 'free') as Plan;
+  const activeJobCount = jobs.filter((j) => j.companyId === user?.id && j.status === 'active').length;
+  const atLimit = !canAddJob(plan, activeJobCount);
+
+  const [showPricing, setShowPricing]   = useState(false);
+  const [featuringJob, setFeaturingJob] = useState<typeof jobs[0] | null>(null);
 
   const myJobs = jobs.filter((j) => j.companyId === user?.id);
 
@@ -169,8 +180,24 @@ const CompanyJobs = () => {
     <div className="p-4 lg:p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6 gap-2 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Job Postings</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your open positions</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Job Postings</h1>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${PLANS[plan].badge}`}>
+              {PLANS[plan].label}
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            {activeJobCount} / {PLANS[plan].jobLimit === Infinity ? '∞' : PLANS[plan].jobLimit} active jobs
+            {atLimit && (
+              <button
+                type="button"
+                className="ml-2 text-primary hover:underline font-medium"
+                onClick={() => setShowPricing(true)}
+              >
+                Upgrade
+              </button>
+            )}
+          </p>
         </div>
         <div className="flex gap-2">
           <input
@@ -188,9 +215,12 @@ const CompanyJobs = () => {
             <Upload className="h-4 w-4 mr-1" />
             Upload JD
           </Button>
-          <Button onClick={() => navigate("/dashboard")}>
-            <Plus className="h-4 w-4 mr-1" />
-            New via Chat
+          <Button
+            onClick={() => atLimit ? setShowPricing(true) : navigate("/dashboard")}
+            variant={atLimit ? "outline" : "default"}
+          >
+            {atLimit ? <Zap className="h-4 w-4 mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
+            {atLimit ? "Upgrade to post more" : "New via Chat"}
           </Button>
         </div>
       </div>
@@ -205,11 +235,16 @@ const CompanyJobs = () => {
             <div key={job.id} className="glass-card rounded-xl p-5 animate-fade-in">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h3 className="font-semibold truncate">{job.title}</h3>
                     <Badge variant="secondary" className={statusColors[job.status]}>
                       {job.status}
                     </Badge>
+                    {isFeaturedActive(job) && (
+                      <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-400/40 gap-1 text-xs">
+                        <Star className="h-3 w-3 fill-current" /> Featured
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{job.description}</p>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -242,6 +277,17 @@ const CompanyJobs = () => {
                       <Archive className="h-4 w-4" />
                     </Button>
                   )}
+                  {job.status === 'active' && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={isFeaturedActive(job) ? "text-yellow-500" : ""}
+                      onClick={() => setFeaturingJob(job)}
+                      title={isFeaturedActive(job) ? "Extend featured listing" : "Feature this job"}
+                    >
+                      <Star className={`h-4 w-4 ${isFeaturedActive(job) ? "fill-current" : ""}`} />
+                    </Button>
+                  )}
                   <Button size="sm" variant="ghost" onClick={() => openEdit(job)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -260,8 +306,19 @@ const CompanyJobs = () => {
         </div>
       )}
 
+      <PricingModal
+        open={showPricing}
+        onOpenChange={setShowPricing}
+        currentPlan={plan}
+        reason={atLimit ? `You've reached the ${PLANS[plan].jobLimit}-job limit on the ${PLANS[plan].label} plan.` : undefined}
+      />
+      <FeaturedJobModal
+        open={!!featuringJob}
+        onOpenChange={(o) => !o && setFeaturingJob(null)}
+        job={featuringJob}
+      />
       <Dialog open={!!editingJob} onOpenChange={(o) => !o && setEditingJob(null)}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-auto">
+        <DialogContent className="w-full max-w-lg max-h-[85vh] overflow-auto">
           <DialogHeader>
             <DialogTitle>Edit Job</DialogTitle>
           </DialogHeader>
@@ -301,7 +358,7 @@ const CompanyJobs = () => {
                 className="mt-1"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label>Experience</Label>
                 <Input

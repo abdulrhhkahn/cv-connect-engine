@@ -17,19 +17,19 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const isCompany = user.role === "company";
   const navItems = isCompany
     ? [
-        { to: "/dashboard", label: "Chat", icon: MessageSquare },
-        { to: "/jobs", label: "Jobs", icon: Briefcase },
-        { to: "/applicants", label: "Applicants", icon: User },
-        { to: "/interviews", label: "Interviews", icon: CalendarCheck },
+        { to: "/dashboard", label: "Chat",       icon: MessageSquare },
+        { to: "/jobs",      label: "Jobs",        icon: Briefcase },
+        { to: "/applicants",label: "Applicants",  icon: User },
+        { to: "/interviews",label: "Interviews",  icon: CalendarCheck },
         { to: "/company-profile", label: "Company", icon: Building2 },
       ]
     : [
-        { to: "/chat", label: "AI Chat", icon: MessageSquare },
-        { to: "/dashboard", label: "Jobs", icon: Briefcase },
+        { to: "/chat",          label: "AI Chat",      icon: MessageSquare },
+        { to: "/dashboard",     label: "Jobs",         icon: Briefcase },
         { to: "/my-applications", label: "Applications", icon: FileText },
-        { to: "/companies", label: "Companies", icon: Building2 },
-        { to: "/interviews", label: "Interviews", icon: CalendarCheck },
-        { to: "/profile", label: "Profile", icon: User },
+        { to: "/companies",     label: "Companies",    icon: Building2 },
+        { to: "/interviews",    label: "Interviews",   icon: CalendarCheck },
+        { to: "/profile",       label: "Profile",      icon: User },
       ];
 
   const Logo = (
@@ -45,8 +45,8 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="h-14 border-b border-border flex items-center px-4 lg:px-6 justify-between shrink-0">
         <div className="flex items-center gap-6">
-          {/* Mobile: hamburger replaces logo */}
-          <div className="sm:hidden">
+          {/* Hamburger: visible on mobile + tablet (< md = 768px) */}
+          <div className="md:hidden">
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="sm" aria-label="Open menu">
@@ -96,15 +96,15 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
             </Sheet>
           </div>
 
-          {/* Desktop: logo + nav */}
-          <div className="hidden sm:block">{Logo}</div>
-          <nav className="hidden sm:flex items-center gap-1">
+          {/* Logo + nav: visible on desktop (≥ md = 768px) */}
+          <div className="hidden md:block">{Logo}</div>
+          <nav className="hidden md:flex items-center gap-0.5">
             {navItems.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={to}
                 className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  `flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     isActive
                       ? "bg-accent text-accent-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary"
@@ -118,8 +118,8 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
           </nav>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground hidden sm:inline">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground hidden md:inline truncate max-w-[160px]">
             {user.name} {user.company && `· ${user.company}`}
           </span>
           <Button
@@ -127,14 +127,14 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
             size="sm"
             onClick={toggleTheme}
             aria-label="Toggle theme"
-            className="hidden sm:inline-flex"
+            className="hidden md:inline-flex"
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
-          <div className="hidden sm:inline-flex">
+          <div className="hidden md:inline-flex">
             <NotificationsBell />
           </div>
-          <Button variant="ghost" size="sm" onClick={logout} className="hidden sm:inline-flex">
+          <Button variant="ghost" size="sm" onClick={logout} className="hidden md:inline-flex">
             <LogOut className="h-4 w-4" />
           </Button>
         </div>

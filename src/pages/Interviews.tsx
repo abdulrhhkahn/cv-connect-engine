@@ -133,7 +133,7 @@ const Interviews = () => {
             const youProposed = proposed && ((isCompany && iv.proposedBy === "company") || (!isCompany && iv.proposedBy === "candidate"));
             return (
               <div key={iv.id} className="glass-card rounded-xl p-4 animate-fade-in">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold">{iv.jobTitle}</h3>
@@ -202,7 +202,7 @@ const Interviews = () => {
                   </div>
 
                   {!isPast && iv.status !== "cancelled" && iv.status !== "completed" && (
-                    <div className="flex flex-wrap gap-1 shrink-0 justify-end">
+                    <div className="flex flex-wrap gap-1 sm:shrink-0 sm:flex-col sm:items-end">
                       {/* Candidate confirm initial invite */}
                       {!isCompany && iv.status === "pending_confirmation" && (
                         <Button size="sm" onClick={() => confirm(iv)}>

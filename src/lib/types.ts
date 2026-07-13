@@ -23,6 +23,7 @@ export interface CompanyProfile {
   bannerUrl?: string;
   employees: { name: string; title: string; avatarUrl?: string }[];
   followers: string[]; // candidate user IDs
+  plan?: 'free' | 'growth' | 'scale';
 }
 
 export interface Job {
@@ -42,6 +43,8 @@ export interface Job {
   industryExperience?: string[];
   softSkills?: string[];
   culturalFit?: string[];
+  featured?: boolean;
+  featuredUntil?: Date | null;
 }
 
 export interface CandidateProfile {
@@ -63,6 +66,8 @@ export interface CandidateProfile {
   industryExperience?: string[];
   softSkills?: string[];
   culturalFit?: string[];
+  featured?: boolean;
+  featuredUntil?: Date | null;
 }
 
 export interface Application {

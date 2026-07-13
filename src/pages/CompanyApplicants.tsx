@@ -54,52 +54,50 @@ const CompanyApplicants = () => {
             const profile = profiles.find((p) => p.userId === app.candidateId);
 
             return (
-              <div key={app.id} className="glass-card rounded-xl p-5 animate-fade-in">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1">
-                      {profile?.avatarUrl ? (
-                        <img src={profile.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
-                      ) : (
-                        <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
-                          <User className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      )}
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">{app.candidateName}</h3>
-                          <Badge variant="secondary" className={getMatchClass(app.matchScore)}>
-                            {app.matchScore}% match
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">Applied for: {job?.title || "Unknown"}</p>
-                      </div>
+              <div key={app.id} className="glass-card rounded-xl p-4 sm:p-5 animate-fade-in">
+                {/* Info row */}
+                <div className="flex items-start gap-3 mb-3">
+                  {profile?.avatarUrl ? (
+                    <img src={profile.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                      <User className="h-5 w-5 text-muted-foreground" />
                     </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold">{app.candidateName}</h3>
+                      <Badge variant="secondary" className={getMatchClass(app.matchScore)}>
+                        {app.matchScore}% match
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Applied for: {job?.title || "Unknown"}</p>
                     {profile && (
-                      <p className="text-xs text-muted-foreground ml-[52px] mb-2">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {profile.title} · {profile.experience} exp
                       </p>
                     )}
-                    <p className="text-sm text-muted-foreground bg-secondary/50 rounded-md px-3 py-2 mt-2">
-                      {app.matchDetails}
-                    </p>
                   </div>
-                  <div className="flex flex-col items-center gap-1 shrink-0">
-                    <Button size="sm" variant={app.status === "shortlisted" ? "default" : "ghost"} onClick={() => notifyStatus(app, "shortlisted")} title="Shortlist">
-                      <CheckCircle2 className="h-4 w-4" />
+                </div>
+                <p className="text-sm text-muted-foreground bg-secondary/50 rounded-md px-3 py-2 mb-3">
+                  {app.matchDetails}
+                </p>
+                {/* Action row — horizontal on all sizes */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Button size="sm" variant={app.status === "shortlisted" ? "default" : "outline"} onClick={() => notifyStatus(app, "shortlisted")} className="gap-1.5">
+                    <CheckCircle2 className="h-4 w-4" /> Shortlist
+                  </Button>
+                  <Button size="sm" variant="outline" className={`gap-1.5 ${app.status === "rejected" ? "text-destructive border-destructive/50" : ""}`} onClick={() => notifyStatus(app, "rejected")}>
+                    <XCircle className="h-4 w-4" /> Reject
+                  </Button>
+                  {profile && (
+                    <Button size="sm" variant="ghost" onClick={() => setSelectedProfile(profile)} className="gap-1.5">
+                      <User className="h-4 w-4" /> Profile
                     </Button>
-                    <Button size="sm" variant="ghost" className={app.status === "rejected" ? "text-destructive" : ""} onClick={() => notifyStatus(app, "rejected")} title="Reject">
-                      <XCircle className="h-4 w-4" />
-                    </Button>
-                    {profile && (
-                      <Button size="sm" variant="outline" onClick={() => setSelectedProfile(profile)} title="View Profile" className="mt-1">
-                        <User className="h-4 w-4" />
-                      </Button>
-                    )}
-                    <Button size="sm" variant="outline" onClick={() => setScheduleApp(app)} title="Schedule interview">
-                      <CalendarPlus className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={() => setScheduleApp(app)} className="gap-1.5">
+                    <CalendarPlus className="h-4 w-4" /> Schedule
+                  </Button>
                 </div>
               </div>
             );
@@ -110,7 +108,7 @@ const CompanyApplicants = () => {
       {/* Candidate Profile Detail Dialog */}
       <Dialog open={!!selectedProfile} onOpenChange={(o) => !o && setSelectedProfile(null)}>
         {selectedProfile && (
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-auto">
+          <DialogContent className="w-full max-w-lg max-h-[85vh] overflow-auto">
             <DialogHeader>
               <DialogTitle>Candidate Profile</DialogTitle>
             </DialogHeader>
@@ -143,7 +141,7 @@ const CompanyApplicants = () => {
                 {selectedProfile.portfolio && <p className="text-sm flex items-center gap-2"><Globe className="h-3.5 w-3.5 text-muted-foreground" /> {selectedProfile.portfolio}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="bg-secondary/50 rounded-lg p-3">
                   <p className="text-xs font-semibold uppercase text-muted-foreground mb-1 flex items-center gap-1"><Briefcase className="h-3 w-3" /> Experience</p>
                   <p className="text-sm">{selectedProfile.experience}</p>
