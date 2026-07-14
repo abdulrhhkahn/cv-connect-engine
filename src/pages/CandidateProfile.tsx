@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, Save, X, Plus, User, Phone, Globe, MapPin, Linkedin } from "lucide-react";
 import { toast } from "sonner";
 import TagInput from "@/components/TagInput";
+import { uploadAvatar, uploadCv } from "@/lib/storage";
 
 const CandidateProfilePage = () => {
   const { user } = useAuth();
@@ -21,8 +22,10 @@ const CandidateProfilePage = () => {
     experience: "", education: "", phone: "", linkedIn: "", portfolio: "", location: "",
     industryExperience: [], softSkills: [], culturalFit: [],
   });
-  const [cvFile, setCvFile] = useState<string | null>(null);
+  const [cvFile, setCvFile]     = useState<string | null>(null);
+  const [cvUrl, setCvUrl]       = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [saving, setSaving]     = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -37,6 +40,7 @@ const CandidateProfilePage = () => {
         culturalFit: [...(profile.culturalFit || [])],
       });
       setCvFile(profile.cvFileName || null);
+      setCvUrl(profile.cvUrl || null);
       setAvatarPreview(profile.avatarUrl || null);
     } else if (user) {
       setForm({
@@ -117,14 +121,23 @@ const CandidateProfilePage = () => {
 
   const handleCvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
     setCvFile(file.name);
-    toast.success(`CV "${file.name}" uploaded`);
 
+    // Upload to Supabase Storage so companies can download it
+    const t = toast.loading("Uploading CV…");
+    try {
+      const url = await uploadCv(user.id, file);
+      setCvUrl(url);
+      toast.success(`CV "${file.name}" uploaded`, { id: t });
+    } catch (err) {
+      console.error("CV upload failed:", err);
+      toast.error("CV upload failed — profile data still extracted", { id: t });
+    }
+
+    // Auto-fill profile fields from CV text
     const text = await parseCvText(file);
     const extracted = extractFromCv(text);
-
-    // Only fill fields that are currently empty
     setForm((prev) => {
       const merged: Partial<ProfileType> = { ...prev };
       const isEmpty = (v: unknown) => v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
@@ -140,26 +153,43 @@ const CandidateProfilePage = () => {
     });
   };
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => { setAvatarPreview(ev.target?.result as string); };
-      reader.readAsDataURL(file);
-      toast.success("Profile image updated");
+    if (!file || !user) return;
+    // Show preview immediately while uploading
+    const reader = new FileReader();
+    reader.onload = (ev) => setAvatarPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+    const t = toast.loading("Uploading photo…");
+    try {
+      const url = await uploadAvatar(user.id, file);
+      setAvatarPreview(url);    // replace base64 preview with stable URL
+      toast.success("Profile photo updated", { id: t });
+    } catch (err) {
+      console.error("Avatar upload failed:", err);
+      toast.error("Photo upload failed — preview only", { id: t });
     }
   };
 
   const setField = (key: keyof ProfileType, value: unknown) => setForm({ ...form, [key]: value });
 
-  const save = () => {
+  const save = async () => {
     if (!user) return;
-    updateProfile(user.id, {
-      ...form, userId: user.id,
-      cvFileName: cvFile || undefined,
-      avatarUrl: avatarPreview || undefined,
-    } as ProfileType);
-    toast.success("Profile saved!");
+    setSaving(true);
+    try {
+      await updateProfile(user.id, {
+        ...form, userId: user.id,
+        cvFileName: cvFile     || undefined,
+        cvUrl:      cvUrl      || undefined,
+        avatarUrl:  avatarPreview || undefined,
+      } as ProfileType);
+      toast.success("Profile saved!");
+    } catch (err) {
+      console.error("Profile save failed:", err);
+      toast.error("Failed to save profile. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

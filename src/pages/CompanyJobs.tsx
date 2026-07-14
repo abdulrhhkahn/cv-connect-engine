@@ -167,9 +167,13 @@ const CompanyJobs = () => {
         return;
       }
       const job = parseJobDescription(text, user.id, user.company || user.name);
-      addJob(job);
-      openEdit(job);
-      toast.success("Job description imported — review and publish", { id: t });
+      try {
+        await addJob(job);
+        openEdit(job);
+        toast.success("Job description imported — review and publish", { id: t });
+      } catch {
+        toast.error("Failed to create job", { id: t });
+      }
     } catch (err) {
       console.error(err);
       toast.error("Could not read file", { id: t });

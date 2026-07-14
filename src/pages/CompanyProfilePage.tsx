@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Save, Upload, Building2, MapPin, Globe, Phone, Mail, Users, Image, X, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { uploadLogo, uploadBanner } from "@/lib/storage";
 
 const CompanyProfilePage = () => {
   const { user } = useAuth();
@@ -24,6 +25,7 @@ const CompanyProfilePage = () => {
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [newEmpName, setNewEmpName] = useState("");
   const [newEmpTitle, setNewEmpTitle] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -39,9 +41,10 @@ const CompanyProfilePage = () => {
     }
   }, [profile, user]);
 
-  const handleImageUpload = (type: "logo" | "banner") => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (type: "logo" | "banner") => async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
+    // Instant preview
     const reader = new FileReader();
     reader.onload = (ev) => {
       const url = ev.target?.result as string;
@@ -49,6 +52,19 @@ const CompanyProfilePage = () => {
       else setBannerPreview(url);
     };
     reader.readAsDataURL(file);
+    // Upload to Supabase Storage and replace base64 preview with stable URL
+    const t = toast.loading(`Uploading ${type}…`);
+    try {
+      const url = type === "logo"
+        ? await uploadLogo(user.id, file)
+        : await uploadBanner(user.id, file);
+      if (type === "logo") setLogoPreview(url);
+      else setBannerPreview(url);
+      toast.success(`${type === "logo" ? "Logo" : "Banner"} uploaded`, { id: t });
+    } catch (err) {
+      console.error(`${type} upload failed:`, err);
+      toast.error(`${type === "logo" ? "Logo" : "Banner"} upload failed — preview only`, { id: t });
+    }
   };
 
   const addEmployee = () => {
@@ -64,14 +80,22 @@ const CompanyProfilePage = () => {
 
   const setField = (key: string, value: unknown) => setForm({ ...form, [key]: value });
 
-  const save = () => {
+  const save = async () => {
     if (!user) return;
-    updateCompanyProfile(user.id, {
-      ...form, userId: user.id,
-      logoUrl: logoPreview || undefined,
-      bannerUrl: bannerPreview || undefined,
-    } as CompanyProfile);
-    toast.success("Company profile saved!");
+    setSaving(true);
+    try {
+      await updateCompanyProfile(user.id, {
+        ...form, userId: user.id,
+        logoUrl:   logoPreview   || undefined,
+        bannerUrl: bannerPreview || undefined,
+      } as CompanyProfile);
+      toast.success("Company profile saved!");
+    } catch (err) {
+      console.error("Profile save failed:", err);
+      toast.error("Failed to save profile. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -186,7 +210,7 @@ const CompanyProfilePage = () => {
             </div>
           </div>
 
-          <Button onClick={save} className="w-full"><Save className="h-4 w-4 mr-1" /> Save Company Profile</Button>
+          <Button onClick={save} disabled={saving} className="w-full"><Save className="h-4 w-4 mr-1" /> {saving ? "Saving…" : "Save Company Profile"}</Button>
         </div>
       </div>
     </div>

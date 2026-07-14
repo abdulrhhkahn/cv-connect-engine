@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Job, Application } from "@/lib/types";
-import { Briefcase, MapPin, Clock, DollarSign, CheckCircle2, AlertTriangle, XCircle, Users, Heart, Building2, Search, Filter, Star } from "lucide-react";
+import { Briefcase, MapPin, Clock, DollarSign, CheckCircle2, AlertTriangle, XCircle, Users, Heart, Building2, Search, Filter, Star, Loader2 } from "lucide-react";
 import { isFeaturedActive } from "@/lib/billing";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
@@ -149,7 +149,9 @@ const CandidateJobs = () => {
     });
   }, [activeJobs, searchQuery, locationFilter, typeFilter, matchFilter, industryFilter, profile]);
 
-  const applyForJob = (job: Job) => {
+  const [applying, setApplying] = useState(false);
+
+  const applyForJob = async (job: Job) => {
     if (!user || !profile) {
       toast.error("Please complete your profile first");
       return;
@@ -172,16 +174,24 @@ const CandidateJobs = () => {
       improvements: match.missing.length > 0 ? match.missing.map(m => `Strengthen: ${m}`) : [],
       missingSkills: [...match.softSkillGaps, ...match.industryGaps],
     };
-    addApplication(app);
-    addNotification({
-      userId: selectedJob.companyId,
-      title: "New application",
-      message: `${user.name} applied for "${selectedJob.title}".`,
-      type: "application",
-      link: "/applicants",
-    });
-    toast.success("Application submitted!");
-    setSelectedJob(null);
+    setApplying(true);
+    try {
+      await addApplication(app);
+      addNotification({
+        userId: job.companyId,
+        title: "New application",
+        message: `${user.name} applied for "${job.title}".`,
+        type: "application",
+        link: "/applicants",
+      });
+      toast.success("Application submitted!");
+      setSelectedJob(null);
+    } catch (err) {
+      console.error("Apply failed:", err);
+      toast.error("Failed to submit application. Please try again.");
+    } finally {
+      setApplying(false);
+    }
   };
 
   return (

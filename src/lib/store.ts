@@ -245,12 +245,12 @@ export const useJobStore = () => {
     deleteJob: (id: string)                            => deleteJobMut.mutate(id),
 
     // ── Application mutations ──
-    addApplication:    (app: Application)                            => addApplicationMut.mutate(app),
+    addApplication:    (app: Application)                            => addApplicationMut.mutateAsync(app),
     updateApplication: (id: string, updates: Partial<Application>)  => updateApplicationMut.mutate({ id, updates }),
 
     // ── Profile mutations ──
-    updateProfile:        (userId: string, updates: Partial<CandidateProfile>) => updateProfileMut.mutate({ userId, updates }),
-    updateCompanyProfile: (userId: string, updates: Partial<CompanyProfile>)   => updateCompanyProfileMut.mutate({ userId, updates }),
+    updateProfile:        (userId: string, updates: Partial<CandidateProfile>) => updateProfileMut.mutateAsync({ userId, updates }),
+    updateCompanyProfile: (userId: string, updates: Partial<CompanyProfile>)   => updateCompanyProfileMut.mutateAsync({ userId, updates }),
     toggleFollow:         (companyUserId: string, candidateUserId: string)     => toggleFollowMut.mutate({ companyUserId, candidateUserId }),
 
     // ── Interview mutations ──
