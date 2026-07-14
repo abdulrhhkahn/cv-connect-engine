@@ -144,15 +144,21 @@ const CompanyChat = () => {
     );
   };
 
-  const publishJob = (msgId: string) => {
+  const publishJob = async (msgId: string) => {
     const msg = messages.find((m) => m.id === msgId);
     if (!msg?.draftJob) return;
     const published: Job = { ...msg.draftJob, status: "active" };
-    addJob(published);
-    setMessages((prev) =>
-      prev.map((m) => (m.id === msgId ? { ...m, saved: true, draftJob: published } : m))
-    );
-    toast.success("Job published");
+    try {
+      await addJob(published);
+      // Only mark saved + show success AFTER the DB insert succeeds
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msgId ? { ...m, saved: true, draftJob: published } : m))
+      );
+      toast.success("Job published — visible in the Jobs tab");
+    } catch (err) {
+      console.error("publishJob failed:", err);
+      toast.error("Failed to publish job. Check your connection and try again.");
+    }
   };
 
   const cancelDraft = (msgId: string) => {

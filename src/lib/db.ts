@@ -182,8 +182,6 @@ export async function insertJob(job: Job): Promise<Job> {
       industry_experience: job.industryExperience ?? [],
       soft_skills:         job.softSkills ?? [],
       cultural_fit:        job.culturalFit ?? [],
-      featured:            job.featured ?? false,
-      featured_until:      job.featuredUntil ? (job.featuredUntil as Date).toISOString() : null,
     })
     .select()
     .single();

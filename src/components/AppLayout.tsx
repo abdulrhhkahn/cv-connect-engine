@@ -5,13 +5,22 @@ import { Sparkles, LogOut, Briefcase, User, MessageSquare, FileText, Building2, 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import NotificationsBell from "@/components/NotificationsBell";
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  const handleLogout = async () => {
+    qc.clear();          // wipe cached data so next user starts fresh
+    await logout();
+    navigate("/");       // navigate to root after sign-out
+  };
   if (!user) return null;
 
   const isCompany = user.role === "company";
@@ -88,7 +97,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
                   <div onClick={() => setOpen(false)}>
                     <NotificationsBell compact />
                   </div>
-                  <Button variant="outline" size="sm" className="w-full" onClick={() => { setOpen(false); logout(); }}>
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => { setOpen(false); handleLogout(); }}>
                     <LogOut className="h-4 w-4 mr-2" /> Log out
                   </Button>
                 </div>
@@ -134,7 +143,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="hidden md:inline-flex">
             <NotificationsBell />
           </div>
-          <Button variant="ghost" size="sm" onClick={logout} className="hidden md:inline-flex">
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="hidden md:inline-flex">
             <LogOut className="h-4 w-4" />
           </Button>
         </div>

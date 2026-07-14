@@ -8,10 +8,6 @@ interface AuthContextType {
   loading:             boolean;
   isPasswordRecovery:  boolean;
   login:               (email: string, password: string) => Promise<void>;
-  /**
-   * Returns true when Supabase requires email confirmation before the user
-   * can log in (default in new projects). Landing.tsx shows "check your inbox".
-   */
   signup:              (name: string, email: string, password: string, role: UserRole, company?: string) => Promise<{ confirmationRequired: boolean }>;
   logout:              () => Promise<void>;
   sendPasswordReset:   (email: string) => Promise<void>;
@@ -26,7 +22,7 @@ export const useAuth = () => {
   return ctx;
 };
 
-// ── helpers ──────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────
 
 async function fetchUserRow(id: string): Promise<User | null> {
   const { data, error } = await supabase
@@ -45,19 +41,16 @@ async function fetchUserRow(id: string): Promise<User | null> {
   };
 }
 
-/** Pull a human-readable message out of any thrown value */
 function extractMessage(err: unknown): string {
   if (!err) return 'Unknown error';
   if (typeof err === 'string') return err;
-  // Native Error
   if (err instanceof Error) return err.message;
-  // Supabase PostgrestError / AuthError (plain objects with .message)
   if (typeof err === 'object' && 'message' in err)
     return String((err as { message: unknown }).message);
   return JSON.stringify(err);
 }
 
-// ── provider ─────────────────────────────────────────────────
+// ── Provider ──────────────────────────────────────────────────
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser]                             = useState<User | null>(null);
@@ -65,46 +58,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) setUser(await fetchUserRow(session.user.id));
-      setLoading(false);
-    });
-
+    /**
+     * FIX: Use onAuthStateChange exclusively (including INITIAL_SESSION)
+     * instead of getSession() + onAuthStateChange separately.
+     *
+     * The old pattern ran getSession() first, called setLoading(false),
+     * and THEN onAuthStateChange fired PASSWORD_RECOVERY — by which point
+     * App.tsx had already routed the user to the dashboard.
+     *
+     * With INITIAL_SESSION, the event fires before we set loading=false,
+     * so PASSWORD_RECOVERY is detected in the correct order every time.
+     */
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+
+        // ── Password reset link clicked ──────────────────────
         if (event === 'PASSWORD_RECOVERY') {
           setIsPasswordRecovery(true);
           if (session?.user) setUser(await fetchUserRow(session.user.id));
+          setLoading(false);
           return;
         }
-        if (event === 'SIGNED_OUT') { setUser(null); setIsPasswordRecovery(false); return; }
-        if (session?.user) setUser(await fetchUserRow(session.user.id));
-        else               setUser(null);
+
+        // ── Sign out ─────────────────────────────────────────
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setIsPasswordRecovery(false);
+          setLoading(false);
+          return;
+        }
+
+        // ── All other events (INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED) ──
+        if (session?.user) {
+          let u = await fetchUserRow(session.user.id);
+
+          // First-time OAuth sign-in — public.users row doesn't exist yet
+          if (!u && event === 'SIGNED_IN') {
+            await seedOAuthUser({
+              id:            session.user.id,
+              email:         session.user.email,
+              user_metadata: session.user.user_metadata ?? {},
+            });
+            u = await fetchUserRow(session.user.id);
+          }
+
+          setUser(u);
+        } else {
+          setUser(null);
+        }
+
+        setLoading(false);
       }
     );
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // ── auth actions ─────────────────────────────────────────
+  // ── Auth actions ─────────────────────────────────────────────
 
   const login = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
-      email:    email.trim().toLowerCase(),
+      email: email.trim().toLowerCase(),
       password,
     });
     if (error) throw new Error(extractMessage(error));
   };
 
-  /**
-   * Creates the Supabase Auth user and passes name/role/company as metadata.
-   * A database trigger (handle_new_auth_user) auto-creates the public.users
-   * row and the role-specific profile — no client-side inserts needed.
-   *
-   * Returns { confirmationRequired: true } when the project requires email
-   * verification before login (Supabase default). Landing shows a "check
-   * your inbox" screen in that case.
-   */
   const signup = async (
     name:     string,
     email:    string,
@@ -126,14 +145,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (error) throw new Error(extractMessage(error));
     if (!data.user) throw new Error('Sign-up failed — please try again.');
-
-    // session is null when email confirmation is required
     return { confirmationRequired: !data.session };
   };
 
-  const logout = async () => { await supabase.auth.signOut(); };
+  const logout = async () => {
+    await supabase.auth.signOut();
+    // onAuthStateChange fires SIGNED_OUT → clears user + recovery flag
+  };
 
-  /** Always "succeeds" from the user's perspective — prevents email enumeration. */
   const sendPasswordReset = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(
       email.trim().toLowerCase(),
@@ -160,3 +179,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
+
+// ── OAuth first-sign-in seeder (kept here to avoid circular imports) ──
+
+async function seedOAuthUser(authUser: {
+  id: string;
+  email?: string;
+  user_metadata: Record<string, string>;
+}): Promise<void> {
+  const name  = authUser.user_metadata?.full_name
+    || authUser.user_metadata?.name
+    || authUser.email?.split('@')[0]
+    || 'User';
+  const email = authUser.email ?? '';
+
+  const { error: userErr } = await supabase
+    .from('users')
+    .insert({ id: authUser.id, email, name, role: 'candidate', company: null });
+  if (userErr && userErr.code !== '23505') {
+    console.error('seedOAuthUser users insert', userErr);
+    return;
+  }
+
+  const { error: profileErr } = await supabase
+    .from('candidate_profiles')
+    .insert({
+      user_id: authUser.id, name, email,
+      title: '', summary: '', skills: [], experience: '', education: '',
+      cv_url: null, cv_file_name: null, avatar_url: null, phone: null,
+      linked_in: null, portfolio: null, location: null,
+      industry_experience: [], soft_skills: [], cultural_fit: [],
+    });
+  if (profileErr && profileErr.code !== '23505') {
+    console.error('seedOAuthUser profile insert', profileErr);
+  }
+}

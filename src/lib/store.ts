@@ -240,7 +240,7 @@ export const useJobStore = () => {
     getCompanyProfile: (userId: string) => companyProfiles.find((p) => p.userId === userId),
 
     // ── Job mutations ──
-    addJob:    (job: Job)                              => addJobMut.mutate(job),
+    addJob:    (job: Job)                              => addJobMut.mutateAsync(job),
     updateJob: (id: string, updates: Partial<Job>)     => updateJobMut.mutate({ id, updates }),
     deleteJob: (id: string)                            => deleteJobMut.mutate(id),
 
